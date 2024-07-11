@@ -25,7 +25,12 @@ function getOnlyAllowSyncPagesNotion(){
       and: [
         ignoredTagFilter(false),
         cancelledTagFilter(false),
-        schedulePriorityFilter
+        {
+          property: CONFIG.EXT_FILTER_PROP_NOTION,
+          select: {
+            equals: CONFIG.EXT_FILTER_VALUE_NOTION
+          }
+        }
       ],
       or: [
           ...shouldHaveDateStatsFilterArr
@@ -100,12 +105,12 @@ const ignoredTagFilter = (containsBool = true) => ({
 })
 
 // 노션 필터 - 우선순위가 일정인 것만
-const schedulePriorityFilter = {
-  property: CONFIG.EXT_FILTER_PROP_NOTION,
-  select: {
-    equals: CONFIG.EXT_FILTER_VALUE_NOTION
-  }
-}
+// const extFilter = {
+//   property: CONFIG.EXT_FILTER_PROP_NOTION,
+//   select: {
+//     equals: CONFIG.EXT_FILTER_VALUE_NOTION
+//   }
+// }
 
 // 날짜를 가져야 하는 상태 필터 묶음
 const shouldHaveDateStatsFilterArr =
