@@ -69,9 +69,9 @@ const CONFIG = (() => {
     CALENDAR_NAME_PROP_NOTION : "달력",
     CALENDAR_ID_PROP_NOTION : "달력 ID",
     LAST_SYNC_PROP_NOTION : "마지막 동기화",
-    SYNC_OPT_TAG_PROP_NOTION : "태그",
-    SYNC_OPT_CANCELLED_VALUE_NOTION : "취소/제거됨",
-    SYNC_OPT_IGNORE_VALUE_NOTION : "동기화 무시",
+    SYNC_OPT_TAG_PROP_NOTION : "진행 상태",
+    SYNC_OPT_CANCELLED_VALUE_NOTION : "무계획됨 5",
+    SYNC_OPT_IGNORE_VALUE_NOTION : "보관 5",
     // 커스텀 추가 - 필터 좁히는데 사용되는 속성 값
     EXT_FILTER_PROP_NOTION : "우선순위",
     EXT_FILTER_VALUE_NOTION : "일정 1💼",

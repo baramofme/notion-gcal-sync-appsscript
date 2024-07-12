@@ -96,10 +96,10 @@ const RULES = (() => {
     const cancelledTagFilter = (containsBool = true) => {
         return {
             property: CONFIG.SYNC_OPT_TAG_PROP_NOTION,
-            multi_select: {
+            status: {
                 ...(containsBool
-                        ? {contains: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION}
-                        : {does_not_contain: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION}
+                        ? {equals: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION}
+                        : {does_not_equal: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION}
                 )
             },
         }
@@ -107,10 +107,10 @@ const RULES = (() => {
 
     const ignoredTagFilter = (containsBool = true) => ({
         property: CONFIG.SYNC_OPT_TAG_PROP_NOTION,
-        multi_select: {
+        status: {
             ...(containsBool
-                    ? {contains: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION}
-                    : {does_not_contain: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION}
+                    ? {equals: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION}
+                    : {does_not_equal: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION}
             )
         },
     })

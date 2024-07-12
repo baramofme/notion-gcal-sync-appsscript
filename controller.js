@@ -8,6 +8,10 @@ const CONTROLLER = (()=>{
     console.log("[-GCal] Deleting cancel tagged events from GCal");
 
     const response_data = API.NOTION.getCancelledTaggedNotionPages()
+
+    Logger.log(response_data);
+    return
+
     const commonEvents = response_data.results.map(page => {
       return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
