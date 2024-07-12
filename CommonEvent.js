@@ -14,9 +14,6 @@ let CommonEvent = (function () {
     const _commonEvent = new WeakMap();
 
     class CommonEvent {
-        rulesObj = {}
-        calendarList = {}
-
         constructor(rulesObj, calendarList, mockData) {
             //if (!(startTime instanceof Date)) throw new Error('startTime is not a valid date-time format');
             //if (!(endTime instanceof Date)) throw new Error('endTime is not a valid date-time format');
@@ -24,7 +21,7 @@ let CommonEvent = (function () {
             // _commonEvent.set(this, [headers]);
 
             this.rulesObj = rulesObj;
-            this.calendarList = calendarList;
+            this.calendarsObj = calendarList;
 
             // if mock data is provided, use it. else, initialize with headers.
             if (mockData) {
@@ -46,10 +43,10 @@ let CommonEvent = (function () {
             })
 
             // @Todo 이것도 별도의 rules 로 만들면 좋지 않을까?
-            const calNames = Object.keys(this.calendarList)
+            const calNames = Object.keys(this.calendarsObj)
             obj["calendarMatched"] = calNames.some(name => {
                 return obj.gCalName === name
-                    && obj.gCalCalId === this.calendarList[name].id
+                    && obj.gCalCalId === this.calendarsObj[name].id
             })
             obj["hasGcalInfo"] = obj.gCalEId && obj.gCalName
 

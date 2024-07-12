@@ -382,7 +382,6 @@ const UTIL = (()=> {
     isEmptyObject, // 안 쓰이는 거 같음
     flattenRichText,
     processDate,
-    isPageUpdatedRecently,
     convertPageToCommonEvent,
   }
 })()
