@@ -4,6 +4,8 @@ function main() {
 
   let modified_eIds = CONTROLLER.syncToGCal();
 
+  return
+
   modified_eIds = CONFIG.IGNORE_RECENTLY_PUSHED ? modified_eIds : new Set();
 
   for (var c_name of Object.keys(CALENDAR_IDS)) {

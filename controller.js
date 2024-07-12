@@ -9,7 +9,7 @@ const CONTROLLER = (()=>{
 
     const response_data = API.NOTION.getCancelledTaggedNotionPages()
     const commonEvents = response_data.results.map(page => {
-      return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS)
+      return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
     const needUpdateEvents = commonEvents.filter(event => event.updatedRecently)
 
@@ -45,7 +45,7 @@ const CONTROLLER = (()=>{
 
     const response_data = API.NOTION.getFilteredNotionPages();
     const commonEvents = response_data.results.map(page => {
-      return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS)
+      return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
     const needUpdateEvents = commonEvents.filter(event => event.updatedRecently)
 

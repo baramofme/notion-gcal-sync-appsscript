@@ -18,9 +18,9 @@ const UTIL = (()=> {
     return plain_text;
   }
 
-  function convertPageToCommonEvent(notionDbPage, rulesObj, calendarList){
+  function convertPageToCommonEvent(notionDbPage, rulesObj, calendarList, utils){
     const commonEventObj = new CommonEvent(rulesObj,calendarList)
-    return commonEventObj.importFromNotion(notionDbPage)
+    return commonEventObj.importFromNotion(notionDbPage,utils)
   }
 
   // 후처리 - 노션 정보 추출 시 날짜
