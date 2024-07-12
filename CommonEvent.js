@@ -29,17 +29,46 @@ let CommonEvent = (function () {
                 return this;
             }
 
-            return this;
+            return new Proxy(this,{
+                get: (target, prop, receiver) => {
+                    // Cases where props overlap on both sides are not considered.
+                    if (prop in _commonEvent.get(target)) {
+                        return _commonEvent.get(target)[prop];
+                    }
+                    // currently, we have only 2 member variables. so this it might be overkill.
+                    if (prop in target){
+                        const value = target[prop];
+                        if (value instanceof Function) {
+                            return function (...args) {
+                                return value.apply(this === receiver ? target : this, args);
+                            };
+                        } else {
+                            return value
+                        }
+                    }
+
+                },
+                set: (target, prop, value) => {
+                    // Cases where props overlap on both sides are not considered.
+                    if (prop in _commonEvent.get(target)) {
+                        _commonEvent.get(target)[prop] = value;
+                    }
+                    if (prop in target){
+                        //if (prop === 'print') return target.print(value);
+                        target[prop] = value;
+                    }
+                }
+            })
         }
 
-        importFromNotion(notionDbPage) {
+        importFromNotion(notionDbPage, utils) {
 
             let obj = {}
 
             const ruleKeys = Object.keys(this.rulesObj)
             ruleKeys.forEach(key => {
-                const {extFunc, convFunc} = this.rulesObj[key](this)
-                obj = convFunc(extFunc(notionDbPage))
+                const {extFunc, convFunc} = this.rulesObj[key](utils)
+                obj[key] = convFunc(extFunc(notionDbPage))
             })
 
             // @Todo 이것도 별도의 rules 로 만들면 좋지 않을까?
@@ -51,16 +80,7 @@ let CommonEvent = (function () {
             obj["hasGcalInfo"] = obj.gCalEId && obj.gCalName
 
             _commonEvent.set(this, obj)
-        }
-
-        get(key) {
-            if (key !== undefined) return _commonEvent.get(this)[key];
-            return _commonEvent.get(this);
-        }
-
-        print(row) {
-            console.log(JSON.stringify(this.get(row)));
-            return true;
+            return this
         }
     }
 
