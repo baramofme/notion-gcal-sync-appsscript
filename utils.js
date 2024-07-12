@@ -18,55 +18,14 @@ const UTIL = (()=> {
     return plain_text;
   }
 
-  /** Determine if a page result has been updated recently
-   * @param {Object} page_result - Page result from Notion database
-   * @return {Boolean} - True if page has been updated recently, false otherwise
-   * */
-  function isPageUpdatedRecently(page_result) {
-    let last_sync_date = page_result.properties[CONFIG.LAST_SYNC_PROP_NOTION];
-    last_sync_date = last_sync_date.date ? last_sync_date.date.start : 0;
-
-    return new Date(last_sync_date) < new Date(page_result.last_edited_time);
+  function convertPageToCommonEvent(notionDbPage, rulesObj, calendarList){
+    const commonEventObj = new CommonEvent(rulesObj,calendarList)
+    return commonEventObj.importFromNotion(notionDbPage)
   }
 
-  function convertPageToCommonEvent(props, rulesObj, calendarList){
-
-    const commonEventObj = {}
-    Logger.log(typeof rulesObj)
-    const keys = Object.keys(rulesObj)
-    keys.forEach(key => {
-      // @TODO required validation 구현..... 기억이 안 나네. 왜 만들었지?
-      // this context 가 URIL 이 맞나? strict 안해줘도 작동할까?
-      const {required, extFunc, convFunc} = rulesObj[key](this)
-      const convertedValue = convFunc(extFunc(props))
-
-      commonEventObj[key] = convertedValue
-    })
-
-    const calNames = Object.keys(calendarList)
-
-    const hasDate = commonEventObj.start
-    const hasGcalInfo = commonEventObj.gCalEId && commonEventObj.gCalName
-
-    // covers only if both gcalId and gcalName are matched to calendarList
-    const calendarMatched = calNames.some(name => {
-      return commonEventObj.gCalName === name
-          && commonEventObj.gCalCalId === calendarList[name].id
-    })
-    const writable = commonEventObj.writable
-
-    return {
-      ...commonEventObj,
-      hasDate,
-      hasGcalInfo,
-      calendarMatched,
-      writable
-    }
-  }
-
-// 후처리 - 노션 정보 추출 시 날짜
-// https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
-// "2021-10-15T12:00:00-07:00"
+  // 후처리 - 노션 정보 추출 시 날짜
+  // https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
+  // "2021-10-15T12:00:00-07:00"
   function processDate(startOrEndTypeStr, datePropObj) {
 
     const isCurntTurnEnd = startOrEndTypeStr === "end"
@@ -97,15 +56,15 @@ const UTIL = (()=> {
     return Object.keys(param).length === 0 && param.constructor === Object;
   }
 
-// function getRelativeDate(daysOffset, hour) {
-//   let date = new Date();
-//   date.setDate(date.getDate() + daysOffset);
-//   date.setHours(hour);
-//   date.setMinutes(0);
-//   date.setSeconds(0);
-//   date.setMilliseconds(0);
-//   return date;
-// }
+  // function getRelativeDate(daysOffset, hour) {
+  //   let date = new Date();
+  //   date.setDate(date.getDate() + daysOffset);
+  //   date.setHours(hour);
+  //   date.setMinutes(0);
+  //   date.setSeconds(0);
+  //   date.setMilliseconds(0);
+  //   return date;
+  // }
 
   /**
    * Return notion JSON property object based on event data
@@ -214,7 +173,7 @@ const UTIL = (()=> {
 //         start: new Date().toISOString(),
 //       },
 //     },
-//     [CONFIG.EVENT_ID_PROP_NOTION]: {
+//     [CONFIG.CALENDAR_EVENT_ID_PROP_NOTION]: {
 //       type: "rich_text",
 //       rich_text: [
 //         {
@@ -279,7 +238,7 @@ const UTIL = (()=> {
 //   const payload = {
 //     filter: {
 //       and: [
-//         { property: CONFIG.EVENT_ID_PROP_NOTION, rich_text: { equals: event.id } },
+//         { property: CONFIG.CALENDAR_EVENT_ID_PROP_NOTION, rich_text: { equals: event.id } },
 //         {
 //           property: CONFIG.SYNC_OPT_TAG_PROP_NOTION,
 //           multi_select: {

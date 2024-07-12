@@ -36,7 +36,7 @@ const API = (() => {
         }
     }
 
-    function getOnlyCancelledTaggedPagesNotion() {
+    function getCancelledTaggedNotionPages() {
         const {ignoredTagFilter, cancelledTagFilter} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
@@ -52,7 +52,7 @@ const API = (() => {
         return notionFetch(url, payload, "POST");
     }
 
-    function getOnlyAllowSyncPagesNotion() {
+    function getFilteredNotionPages() {
         const {ignoredTagFilter, cancelledTagFilter, shouldHaveDateStatsFilterArr} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
@@ -74,7 +74,6 @@ const API = (() => {
             }
         }
         const res = notionFetch(url, payload, "POST");
-        Logger.log(res)
         return res
     }
 
@@ -86,7 +85,7 @@ const API = (() => {
      * @param {Boolean} multi whenever or not to use single fetch, or return options for fetchAll
      * @returns {*} request object if multi, otherwise URL fetch response
      */
-    function pushDatabaseUpdate(
+    function updateNotionPage(
         properties,
         page_id,
         archive = false,
@@ -120,7 +119,7 @@ const API = (() => {
      * ========== 구글용 ==============
      */
 
-    function getAllCalendar() {
+    function getAllGcalCalendar() {
         var calendarList = Calendar.CalendarList.list();
         var calendars = {};
 
@@ -136,7 +135,6 @@ const API = (() => {
             }
         })
 
-        //Logger.log(calendars)
         return calendars;
     }
 
@@ -146,16 +144,15 @@ const API = (() => {
      * @param {Object} calendarList -
      * @returns {Boolean} - True if event was deleted, false if not
      */
-    function deleteEvent(event_id, calendar_id, calendarList) {
+    function deleteGcalEvent(event_id, calendar_id, calendarList) {
         console.log("Deleting event %s from gCal %s", event_id, calendar_id)
 
         if (!calendar_id) {
-            const beforeGCalEventList = API.GCAL.findEventWithinCalendars(event_id, calendarList)
-            Logger.log(beforeGCalEventList)
+            const beforeGCalEventList = API.GCAL.findGcalEventWithin(event_id, calendarList)
         }
         try {
             let calendar = CalendarApp.getCalendarById(calendar_id);
-            calendar.getEventById(event_id).deleteEvent();
+            calendar.getEventById(event_id).deleteGcalEvent();
             return true;
         } catch (e) {
             console.log(e);
@@ -165,46 +162,44 @@ const API = (() => {
 
     // 배열 반환
     // @TODO 할 것
-    function findEventWithinCalendars(eventId, calendarList) {
+    function findGcalEventWithin(eventId, calendarList) {
         const calendarIdList = Object.keys(calendarList).map(calKey => {
             const cal = calendarList[calKey]
             return cal.writable && cal.id
         })
         const findResult = calendarIdList.map(calId => {
             const event = Calendar.Events.get(calId, eventId);
-            Logger.log(event)
             return event
         })
     }
 
+    // @Todo eventId 랑, calendarId 를 안 줘도 되는데?; 귀찮네.
     /** Update Google calendar event
-     * @param {CalendarEvent} event - Modified event object for gCal
+     * @param {CommonEvent} commonEvent - Modified event object for gCal
      * @param {String} page_id - Page ID of Notion page to update
      * @param {String} calendar_id - Calendar ID of calendar to update event from
      * @return {Boolean} True if successful, false otherwise
      */
-    function pushEventUpdate(event, event_id, calendar_id) {
-        event.summary = event.summary || "";
-        event.description = event.description || "";
-        event.location = event.location || "";
+    function updateGcalEvent(commonEvent, event_id, calendar_id) {
+
         try {
             let calendar = CalendarApp.getCalendarById(calendar_id);
-            let cal_event = calendar.getEventById(event_id);
-            cal_event.setDescription(event.description);
-            cal_event.setTitle(event.summary);
-            cal_event.setLocation(event.location);
+            let calEvent = calendar.getEventById(event_id);
+            calEvent.setDescription(commonEvent.description);
+            calEvent.setTitle(commonEvent.summary);
+            calEvent.setLocation(commonEvent.location);
 
-            if (event.end && event.all_day) {
+            if (commonEvent.end && commonEvent.allDay) {
                 // all day, multi day
-                let shifted_date = new Date(event.end);
+                let shifted_date = new Date(commonEvent.end);
                 shifted_date.setDate(shifted_date.getDate() + 2);
-                cal_event.setAllDayDates(new Date(event.start), shifted_date);
-            } else if (event.all_day) {
+                calEvent.setAllDayDates(new Date(commonEvent.start), shifted_date);
+            } else if (commonEvent.allDay) {
                 // all day, single day
-                cal_event.setAllDayDate(new Date(event.start));
+                calEvent.setAllDayDate(new Date(commonEvent.start));
             } else {
                 // not all day
-                cal_event.setTime(new Date(event.start), new Date(event.end) || null);
+                calEvent.setTime(new Date(commonEvent.start), new Date(commonEvent.end) || null);
             }
             return true;
         } catch (e) {
@@ -215,15 +210,15 @@ const API = (() => {
 
     return {
         NOTION: {
-            getOnlyCancelledTaggedPagesNotion,
-            getOnlyAllowSyncPagesNotion,
-            pushDatabaseUpdate,
+            getCancelledTaggedNotionPages,
+            getFilteredNotionPages,
+            updateNotionPage,
         },
         GCAL: {
-            findEventWithinCalendars,
-            getAllCalendar,
-            deleteEvent,
-            pushEventUpdate
+            findGcalEventWithin,
+            getAllGcalCalendar,
+            deleteGcalEvent,
+            updateGcalEvent
         }
     }
 })()

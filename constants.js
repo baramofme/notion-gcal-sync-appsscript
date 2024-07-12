@@ -65,7 +65,7 @@ const CONFIG = (() => {
     DATE_PROP_NOTION : "실행일",
     LOCATION_PROP_NOTION : "위치",
     DESCRIPTION_PROP_NOTION : "설명",
-    EVENT_ID_PROP_NOTION : "행사 ID",
+    CALENDAR_EVENT_ID_PROP_NOTION : "행사 ID",
     CALENDAR_NAME_PROP_NOTION : "달력",
     CALENDAR_ID_PROP_NOTION : "달력 ID",
     LAST_SYNC_PROP_NOTION : "마지막 동기화",

@@ -12,6 +12,6 @@ const CALENDAR_IDS = {
 
 const CALENDAR_IDS = (()=> {
   return {
-    ...API.GCAL.getAllCalendar()
+    ...API.GCAL.getAllGcalCalendar()
     }
 })()

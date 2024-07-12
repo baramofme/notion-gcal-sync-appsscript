@@ -49,7 +49,7 @@ function createEvent(page, event, calendar_name) {
     return false;
   }
   let properties = getBaseNotionProperties(new_event_id, calendar_name);
-  API.NOTION.pushDatabaseUpdate(properties, page.id);
+  API.NOTION.updateNotionPage(properties, page.id);
   return new_event_id;
 }
 
@@ -63,7 +63,7 @@ function createEvent(page, event, calendar_name) {
 //   const url = NOTION_CREDENTIAL_OBJ.databaseUrl();
 //   let payload = {
 //     filter: {
-//       and: [{ property: CONFIG.EVENT_ID_PROP_NOTION, rich_text: { equals: event.id } }],
+//       and: [{ property: CONFIG.CALENDAR_EVENT_ID_PROP_NOTION, rich_text: { equals: event.id } }],
 //     },
 //   };
 //   if (on_before_date) {
@@ -97,7 +97,7 @@ function createEvent(page, event, calendar_name) {
 // function updateDatabaseEntry(event, page_id, existing_tags = [], multi = true) {
 //   let properties = convertToNotionProperty(event, existing_tags);
 //   let archive = CONFIG.ARCHIVE_NOTION_EVENTS_GCAL_REMOVED && event.status === "cancelled";
-//   return API.pushDatabaseUpdate(properties, page_id, archive, multi);
+//   return API.updateNotionPage(properties, page_id, archive, multi);
 // }
 
 
