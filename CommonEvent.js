@@ -14,8 +14,8 @@ let CommonEvent = (function () {
     const _commonEvent = new WeakMap();
 
     class CommonEvent {
-        #rulesObj = {}
-        #calendarList = {}
+        rulesObj = {}
+        calendarList = {}
 
         constructor(rulesObj, calendarList, mockData) {
             //if (!(startTime instanceof Date)) throw new Error('startTime is not a valid date-time format');
@@ -23,8 +23,8 @@ let CommonEvent = (function () {
             //const headers = ['Start Time', 'End Time', 'Title', 'Location', 'Confirmed', 'Guests'];
             // _commonEvent.set(this, [headers]);
 
-            this.#rulesObj = rulesObj;
-            this.#calendarList = calendarList;
+            this.rulesObj = rulesObj;
+            this.calendarList = calendarList;
 
             // if mock data is provided, use it. else, initialize with headers.
             if (mockData) {
@@ -39,17 +39,17 @@ let CommonEvent = (function () {
 
             let obj = {}
 
-            const ruleKeys = Object.keys(this.#rulesObj)
+            const ruleKeys = Object.keys(this.rulesObj)
             ruleKeys.forEach(key => {
-                const {extFunc, convFunc} = this.#rulesObj[key](this)
+                const {extFunc, convFunc} = this.rulesObj[key](this)
                 obj = convFunc(extFunc(notionDbPage))
             })
 
             // @Todo 이것도 별도의 rules 로 만들면 좋지 않을까?
-            const calNames = Object.keys(this.#calendarList)
+            const calNames = Object.keys(this.calendarList)
             obj["calendarMatched"] = calNames.some(name => {
                 return obj.gCalName === name
-                    && obj.gCalCalId === this.#calendarList[name].id
+                    && obj.gCalCalId === this.calendarList[name].id
             })
             obj["hasGcalInfo"] = obj.gCalEId && obj.gCalName
 
