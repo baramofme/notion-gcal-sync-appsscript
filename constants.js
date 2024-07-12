@@ -1,6 +1,5 @@
 /* 통신 필요정보 - 노션과 */
 const NOTION_CREDENTIAL_OBJ = (()=> {
-  Logger.log("NOTION_CREDENTIAL_OBJ")
   return {
     ...getNotionCredentialInfo()
   }
@@ -59,10 +58,8 @@ function getNotionCredentialInfo() {
 
 /* 노션 속성명 */
 const CONFIG = (() => {
-  Logger.log("CONFIG")
-  //'use strict';
-  // this is namespace object
-  const config = {
+  'use strict';
+  return {
     // 속성명
     NAME_PROP_NOTION : "이름",
     DATE_PROP_NOTION : "실행일",
@@ -91,15 +88,13 @@ const CONFIG = (() => {
     // Relative to the time of last full sync in days.
     RELATIVE_MAX_DAY : 1825, // 5 year
     RELATIVE_MIN_DAY : 30,
-  };
-
-  return config
+  }
 
 })()
 
 
 
-/*
+
 const Settings = (() => {
   return {
     apis: {
@@ -131,4 +126,3 @@ const Settings = (() => {
     }
   };
 })();
-*/

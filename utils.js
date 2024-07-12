@@ -1,137 +1,101 @@
-// 후처리 - 노션 정보 추출 시 rich text
-/**
- * Flattens rich text properties into a singular string.
- * @param {Object} rich_text_result - Rich text property to flatten
- * @return {String} - Flattened rich text
- * */
-function flattenRichText(rich_text_result) {
-  let plain_text = "";
+const UTIL = (()=> {
 
-  plain_text = rich_text_result.map((result)=>{
-    return result.rich_text
-      ? result.rich_text.plain_text
-      : result.plain_text;
-  }).join()
+  // 후처리 - 노션 정보 추출 시 rich text
+  /**
+   * Flattens rich text properties into a singular string.
+   * @param {Object} rich_text_result - Rich text property to flatten
+   * @return {String} - Flattened rich text
+   * */
+  function flattenRichText(rich_text_result) {
+    let plain_text = "";
 
-  return plain_text;
-}
+    plain_text = rich_text_result.map((result)=>{
+      return result.rich_text
+          ? result.rich_text.plain_text
+          : result.plain_text;
+    }).join()
 
-/** Determine if a page result has been updated recently
- * @param {Object} page_result - Page result from Notion database
- * @return {Boolean} - True if page has been updated recently, false otherwise
- * */
-function isPageUpdatedRecently(page_result) {
-  let last_sync_date = page_result.properties[CONFIG.LAST_SYNC_PROP_NOTION];
-  last_sync_date = last_sync_date.date ? last_sync_date.date.start : 0;
+    return plain_text;
+  }
 
-  return new Date(last_sync_date) < new Date(page_result.last_edited_time);
-}
+  /** Determine if a page result has been updated recently
+   * @param {Object} page_result - Page result from Notion database
+   * @return {Boolean} - True if page has been updated recently, false otherwise
+   * */
+  function isPageUpdatedRecently(page_result) {
+    let last_sync_date = page_result.properties[CONFIG.LAST_SYNC_PROP_NOTION];
+    last_sync_date = last_sync_date.date ? last_sync_date.date.start : 0;
 
+    return new Date(last_sync_date) < new Date(page_result.last_edited_time);
+  }
 
-function convertPageToCommonEvent(props, rulesObj, calendarList){
-  
-  const commonEventObj = {}
+  function convertPageToCommonEvent(props, rulesObj, calendarList){
 
-  const keys = Object.keys(rulesObj)
-  keys.forEach(key => {
-    const {required, extFunc, convFunc} = rulesObj[key]
-    const convertedValue = convFunc(extFunc(props))
+    const commonEventObj = {}
+    Logger.log(typeof rulesObj)
+    const keys = Object.keys(rulesObj)
+    keys.forEach(key => {
+      // @TODO required validation 구현..... 기억이 안 나네. 왜 만들었지?
+      // this context 가 URIL 이 맞나? strict 안해줘도 작동할까?
+      const {required, extFunc, convFunc} = rulesObj[key](this)
+      const convertedValue = convFunc(extFunc(props))
 
-    commonEventObj[key] = convertedValue
-  })
+      commonEventObj[key] = convertedValue
+    })
 
-  return {
-    ...commonEventObj
-    
+    const calNames = Object.keys(calendarList)
+
+    const hasDate = commonEventObj.start
+    const hasGcalInfo = commonEventObj.gCalEId && commonEventObj.gCalName
+
+    // covers only if both gcalId and gcalName are matched to calendarList
+    const calendarMatched = calNames.some(name => {
+      return commonEventObj.gCalName === name
+          && commonEventObj.gCalCalId === calendarList[name].id
+    })
+    const writable = commonEventObj.writable
+
+    return {
+      ...commonEventObj,
+      hasDate,
+      hasGcalInfo,
+      calendarMatched,
+      writable
     }
-}
+  }
 
-//hoisting 때문에 위로 올림
-//속성추출규칙모음
-// 나중에 static 으로 만들어서, 선택하면 될듯..
-const eventPropertyExtractioinRules = {
-  // Gcal Info
-  gCalId: {
-    required: true,
-    extFunc:(obj) => obj[CONFIG.CALENDAR_ID_PROP_NOTION]?.select,
-    convFunc:(a) => a },
-  gCalName: {
-    required: true,
-    extFunc:(obj) => obj[CONFIG.CALENDAR_NAME_PROP_NOTION]?.select?.name,
-    convFunc:(a)=> a },
-  // Notion Info  
-  id: {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.EVENT_ID_PROP_NOTION].rich_text,
-    convFunc:flattenRichText },
-  summary: {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.NAME_PROP_NOTION].title,
-    convFunc: flattenRichText},
-  description: {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.DESCRIPTION_PROP_NOTION].rich_text,
-    convFunc: flattenRichText },
-  location: {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.LOCATION_PROP_NOTION].rich_text,
-    convFunc: flattenRichText},
-  // Common Info
-  start: {
-    required: true,
-    extFunc:(obj) => obj[CONFIG.DATE_PROP_NOTION].date, 
-    convFunc: (obj) => processDate("start", obj)},
-  end : {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.DATE_PROP_NOTION].date,
-    convFunc: (obj) => processDate("end", obj)},
-  // Gcal Info
-  allDay : {
-    required: false,
-    extFunc:(obj) => obj[CONFIG.DATE_PROP_NOTION].date,
-    convFunc: (date) => {
-
-      const startHasTime = date.start && date.start.search(/([A-Z])/g) !== -1
-  
-      let allDay = true 
-
-      if(date.end === null) allDay = false
-      if(startHasTime && !date.end) allDay = false
-    }},
-}
-
-// 후처리 - 노션 정보 추출 시 날짜 
+// 후처리 - 노션 정보 추출 시 날짜
 // https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
 // "2021-10-15T12:00:00-07:00"
-function processDate(startOrEndTypeStr, datePropObj) {
+  function processDate(startOrEndTypeStr, datePropObj) {
 
-  const isCurntTurnEnd = startOrEndTypeStr === "end"
-  
-  let curntProcValue = datePropObj[startOrEndTypeStr]
-  let startValue = datePropObj["start"]
-  let endValue = datePropObj["end"]
+    const isCurntTurnEnd = startOrEndTypeStr === "end"
 
-  const noTime = curntProcValue?.search(/([A-Z])/g) === -1
-  const startHasTime = startValue && !noTime
+    let curntProcValue = datePropObj[startOrEndTypeStr]
+    let startValue = datePropObj["start"]
+    let endValue = datePropObj["end"]
 
-  // time should be added
-  if(curntProcValue && noTime) curntProcValue += "T00:00:00"
+    const noTime = curntProcValue?.search(/([A-Z])/g) === -1
+    const startHasTime = startValue && !noTime
 
-  // if start has time withoud end, 
-  // make end with time +30m
-  if(isCurntTurnEnd  && !endValue && startHasTime) {
-    let default_end = new Date(datePropObj.start);
-    default_end.setMinutes(default_end.getMinutes() + 30);
-    curntProcValue = default_end.toISOString();
+    // time should be added
+    if(curntProcValue && noTime) curntProcValue += "T00:00:00"
+
+    // if start has time withoud end,
+    // make end with time +30m
+    if(isCurntTurnEnd  && !endValue && startHasTime) {
+      let default_end = new Date(datePropObj.start);
+      default_end.setMinutes(default_end.getMinutes() + 30);
+      curntProcValue = default_end.toISOString();
+    }
+
+    return curntProcValue
+
   }
-  
-  return curntProcValue
-  
-}
 
-// function isEmptyObject(param) {
-//   return Object.keys(param).length === 0 && param.constructor === Object;
-// }
+  function isEmptyObject(param) {
+    return Object.keys(param).length === 0 && param.constructor === Object;
+  }
 
 // function getRelativeDate(daysOffset, hour) {
 //   let date = new Date();
@@ -143,12 +107,12 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   return date;
 // }
 
-/**
- * Return notion JSON property object based on event data
- * @param {CalendarEvent} event modified GCal event object
- * @param {String[]} existing_tags - existing tags to add to event
- * @returns {Object} notion property object
- */
+  /**
+   * Return notion JSON property object based on event data
+   * @param {CalendarEvent} event modified GCal event object
+   * @param {String[]} existing_tags - existing tags to add to event
+   * @returns {Object} notion property object
+   */
 // function convertToNotionProperty(event, existing_tags = []) {
 //   let properties = getBaseNotionProperties(event.id, event.c_name);
 
@@ -236,12 +200,12 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   return properties;
 // }
 
-/**
- * Return base notion JSON property object including generation time
- * @param {String} event_id - event id
- * @param {String} calendar_name - calendar key name
- * @returns {Object} - base notion property object
- *  */
+  /**
+   * Return base notion JSON property object including generation time
+   * @param {String} event_id - event id
+   * @param {String} calendar_name - calendar key name
+   * @returns {Object} - base notion property object
+   *  */
 // function getBaseNotionProperties(event_id, calendar_name) {
 //   return {
 //     [CONFIG.LAST_SYNC_PROP_NOTION]: {
@@ -277,12 +241,12 @@ function processDate(startOrEndTypeStr, datePropObj) {
 
 
 
-/**
- * 속성이 노션에 유효한 지 확인
- *
- * @param {*} properties Properties object to check
- * @returns false if invalid, true if valid
- */
+  /**
+   * 속성이 노션에 유효한 지 확인
+   *
+   * @param {*} properties Properties object to check
+   * @returns false if invalid, true if valid
+   */
 // function checkNotionProperty(properties) {
 //   // Check if description is too long
 //   if (properties[CONFIG.DESCRIPTION_PROP_NOTION].rich_text[0].text.content.length > 2000) {
@@ -295,10 +259,10 @@ function processDate(startOrEndTypeStr, datePropObj) {
 
 
 
-/**
- * Error thrown when an event is invalid and cannot be
- * pushed to either Google Calendar or Notion.
- */
+  /**
+   * Error thrown when an event is invalid and cannot be
+   * pushed to either Google Calendar or Notion.
+   */
 // class InvalidEventError extends Error {
 //   constructor(message) {
 //     super(message);
@@ -306,10 +270,10 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   }
 // }
 
-/**
- * Get notion page ID of corresponding gCal event. Returns null if no page found.
- * @param {CalendarEvent} event - Modiffied gCal event object
- */
+  /**
+   * Get notion page ID of corresponding gCal event. Returns null if no page found.
+   * @param {CalendarEvent} event - Modiffied gCal event object
+   */
 // function getPageId(event) {
 //   const url = NOTION_CREDENTIAL_OBJ.databaseUrl();
 //   const payload = {
@@ -341,16 +305,16 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   return null;
 // }
 
-/**
- * Sync to google calendar from Notion
- * @returns {Set[String]} - Array of event IDs that were modified through event creation
- */
+  /**
+   * Sync to google calendar from Notion
+   * @returns {Set[String]} - Array of event IDs that were modified through event creation
+   */
 
-/**
- * Determine if gcal events need to be updated, removed, or added to the database
- * @param {CalendarEvent[]} events Google calendar events
- * @param {Set[String]} ignored_eIds Event IDs to not act on.
- */
+  /**
+   * Determine if gcal events need to be updated, removed, or added to the database
+   * @param {CalendarEvent[]} events Google calendar events
+   * @param {Set[String]} ignored_eIds Event IDs to not act on.
+   */
 // function parseEvents(events, ignored_eIds) {
 //   let requests = [];
 //   for (let i = 0; i < events.items.length; i++) {
@@ -441,10 +405,10 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   }
 // }
 
-/**
- * Deals with event cancelled from gCal side
- * @param {CalendarEvent} event - Modiffied gCal event object
- */
+  /**
+   * Deals with event cancelled from gCal side
+   * @param {CalendarEvent} event - Modiffied gCal event object
+   */
 // function handleEventCancelled(event) {
 //   const page_id = getPageId(event);
 
@@ -455,35 +419,11 @@ function processDate(startOrEndTypeStr, datePropObj) {
 //   }
 // }
 
-/**
- * Interact with notion API
- * @param {String} url - url to send request to
- * @param {Object} payload_dict - payload to send with request
- * @param {String} method - method to use for request
- * @returns {Object} request response object
- */
-function notionFetch(url, payload_dict, method = "POST") {
-  // UrlFetchApp is sync even if async is specified
-  let options = {
-    method: method,
-    headers: NOTION_CREDENTIAL_OBJ.headers,
-    muteHttpExceptions: true,
-    ...(payload_dict && { payload: JSON.stringify(payload_dict) }),
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-
-  if (response.getResponseCode() === 200) {
-    const response_data = JSON.parse(response.getContentText());
-    if (response_data.length == 0) {
-      throw new Error(
-        "No data returned from Notion API. Check your Notion token."
-      );
-    }
-    return response_data;
-  } else if (response.getResponseCode() === 401) {
-    throw new Error("Notion token is invalid.");
-  } else {
-    throw new Error(response.getContentText());
+  return {
+    isEmptyObject, // 안 쓰이는 거 같음
+    flattenRichText,
+    processDate,
+    isPageUpdatedRecently,
+    convertPageToCommonEvent,
   }
-}
+})()
