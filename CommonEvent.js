@@ -31,12 +31,11 @@ let CommonEvent = (function () {
 
             return new Proxy(this,{
                 get: (target, prop, receiver) => {
+                    // for finding function, convert it to String
+                    const propName = prop.toString();
                     // Cases where props overlap on both sides are not considered.
-                    if (prop in _commonEvent.get(target)) {
-                        return _commonEvent.get(target)[prop];
-                    }
                     // currently, we have only 2 member variables. so this it might be overkill.
-                    if (prop in target){
+                    if (propName in target){
                         const value = target[prop];
                         if (value instanceof Function) {
                             return function (...args) {
@@ -47,13 +46,18 @@ let CommonEvent = (function () {
                         }
                     }
 
+                    if (propName in _commonEvent.get(target)) {
+                        return _commonEvent.get(target)[prop];
+                    }
+
                 },
                 set: (target, prop, value) => {
+                    const propName = prop.toString();
                     // Cases where props overlap on both sides are not considered.
-                    if (prop in _commonEvent.get(target)) {
+                    if (propName in _commonEvent.get(target)) {
                         _commonEvent.get(target)[prop] = value;
                     }
-                    if (prop in target){
+                    if (propName in target){
                         //if (prop === 'print') return target.print(value);
                         target[prop] = value;
                     }
