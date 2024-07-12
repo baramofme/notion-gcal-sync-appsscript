@@ -1,3 +1,7 @@
+if (typeof require !== 'undefined') {
+    MockData = require ('./__tests__/min/MockData.js');
+    CONFIG = require("./config")
+}
 const RULES = (() => {
 
 
@@ -26,7 +30,7 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_EVENT_ID_PROP_NOTION].rich_text,
             convFunc: util.flattenRichText
         }),
-        summary: (util) => ({
+        gCalSummary: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
             convFunc: util.flattenRichText
@@ -92,6 +96,21 @@ const RULES = (() => {
         }),
     }
 
+    // 노션 필더 - 보관 안 됨
+    const notArchived = {
+        "property": "보관됨",
+        "checkbox": {
+            "does_not_equal": true
+        }
+    }
+    // 노션 필터 - 우선순위가 일정인 것만
+    const extFilter = {
+        property: CONFIG.EXT_FILTER_PROP_NOTION,
+        select: {
+            equals: CONFIG.EXT_FILTER_VALUE_NOTION
+        }
+    }
+
     // 노션 필터 - 취소된 작업
     const cancelledTagFilter = (containsBool = true) => {
         return {
@@ -114,14 +133,7 @@ const RULES = (() => {
             )
         },
     })
-    // 노션 필터 - 우선순위가 일정인 것만
 
-    const extFilter = {
-        property: CONFIG.EXT_FILTER_PROP_NOTION,
-        select: {
-            equals: CONFIG.EXT_FILTER_VALUE_NOTION
-        }
-    }
 
     // 날짜를 가져야 하는 상태 필터 묶음
     // 진행상태가 실행 2주일 전과 실행중인 것만 포함한다.
@@ -170,6 +182,7 @@ const RULES = (() => {
             eventPropertyExtractionRules,
         },
         FILTER: {
+            notArchived,
             cancelledTagFilter,
             ignoredTagFilter,
             extFilter,
@@ -178,3 +191,4 @@ const RULES = (() => {
     }
 })()
 
+if (typeof module !== 'undefined') module.exports = RULES;

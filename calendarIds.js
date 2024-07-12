@@ -9,9 +9,15 @@ const CALENDAR_IDS = {
   ["생일"]: "addressbook#contacts@group.v.calendar.google.com"
 };
 */
+if (typeof require !== 'undefined') {
+  MockData = require ('./__tests__/min/MockData.js');
+  API = require ('./api.js');
+}
 
 const CALENDAR_IDS = (()=> {
   return {
     ...API.GCAL.getAllGcalCalendar()
     }
 })()
+
+if (typeof module !== 'undefined') module.exports = CALENDAR_IDS;

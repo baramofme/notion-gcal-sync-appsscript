@@ -1,3 +1,13 @@
+if (typeof require !== 'undefined') {
+    MockData = require ('./__tests__/min/MockData.js');
+    Calendar = {CalendarList: {
+        list: ()=> {
+            return {
+                items: []
+            }
+        }
+    }}
+}
 const API = (() => {
     /**
      * ========== 노션용 CRUD ==============
@@ -37,14 +47,17 @@ const API = (() => {
     }
 
     function getCancelledTaggedNotionPages() {
-        const {ignoredTagFilter, cancelledTagFilter} = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, notArchived,extFilter} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             filter: {
                 and: [
+                    // 보관되지 않음
+                    notArchived,
                     // 무시하거나 취소되지 않음
                     ignoredTagFilter(false),
-                    cancelledTagFilter()
+                    cancelledTagFilter(),
+                    extFilter
                 ]
             }
         };
@@ -53,20 +66,16 @@ const API = (() => {
     }
 
     function getFilteredNotionPages() {
-        const {ignoredTagFilter, cancelledTagFilter, shouldHaveDateStatsFilterArr} = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, extFilter, notArchived, shouldHaveDateStatsFilterArr} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             sorts: [{timestamp: "last_edited_time", direction: "descending"}],
             filter: {
                 and: [
+                    notArchived,
                     ignoredTagFilter(false),
                     cancelledTagFilter(false),
-                    {
-                        property: CONFIG.EXT_FILTER_PROP_NOTION,
-                        select: {
-                            equals: CONFIG.EXT_FILTER_VALUE_NOTION
-                        }
-                    }
+                    extFilter
                 ],
                 or: [
                     ...shouldHaveDateStatsFilterArr
@@ -186,7 +195,7 @@ const API = (() => {
             let calendar = CalendarApp.getCalendarById(calendar_id);
             let calEvent = calendar.getEventById(event_id);
             calEvent.setDescription(commonEvent.description);
-            calEvent.setTitle(commonEvent.summary);
+            calEvent.setTitle(commonEvent.gCalSummary);
             calEvent.setLocation(commonEvent.location);
 
             if (commonEvent.end && commonEvent.allDay) {
@@ -223,4 +232,5 @@ const API = (() => {
     }
 })()
 
+if (typeof module !== 'undefined') module.exports = API;
 

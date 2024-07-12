@@ -1,3 +1,7 @@
+if (typeof require !== 'undefined') {
+  MockData = require ('./__tests__/min/MockData.js');
+  CommonEvent = require ('./CommonEvent.js')
+}
 const UTIL = (()=> {
 
   // 후처리 - 노션 정보 추출 시 rich text
@@ -385,3 +389,5 @@ const UTIL = (()=> {
     convertPageToCommonEvent,
   }
 })()
+
+if (typeof module !== 'undefined') module.exports = UTIL;

@@ -9,7 +9,8 @@ const CONTROLLER = (()=>{
 
     const response_data = API.NOTION.getCancelledTaggedNotionPages()
 
-    Logger.log(response_data);
+    Logger.log(response_data.results[0].properties["이름"].title[0].plain_text);
+    Logger.log(response_data.results.length);
     return
 
     const commonEvents = response_data.results.map(page => {
