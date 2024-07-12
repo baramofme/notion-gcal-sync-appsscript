@@ -1,93 +1,12 @@
 if (typeof require !== 'undefined') {
-    MockData = require('./__tests__/min/MockData.js');
-    Calendar = {
-        CalendarList: {
-            list: () => {
-                return {
-                    items:
-                        [{
-                            colorId: '7',
-                            backgroundColor: '#42d692',
-                            conferenceProperties: [Object],
-                            accessRole: 'reader',
-                            description: 'USA Holiday',
-                            etag: '""',
-                            defaultReminders: [],
-                            summaryOverride: 'USA Holiday',
-                            timeZone: 'America/Los_Angeles',
-                            id: 'en.usa#holiday@group.v.calendar.google.com',
-                            summary: 'USA Holiday',
-                            foregroundColor: '#000000',
-                            kind: 'calendar#calendarListEntry',
-                            selected: true
-                        },
-                            {
-                                timeZone: 'America/Los_Angeles',
-                                accessRole: 'owner',
-                                foregroundColor: '#000000',
-                                primary: true,
-                                backgroundColor: '#9fe1e7',
-                                id: 'main@gmail.com',
-                                selected: true,
-                                kind: 'calendar#calendarListEntry',
-                                defaultReminders: [],
-                                conferenceProperties: [Object],
-                                etag: '""',
-                                summary: 'Personal',
-                                colorId: '14'
-                            },
-                            {
-                                defaultReminders: [],
-                                summary: 'Time table',
-                                kind: 'calendar#calendarListEntry',
-                                accessRole: 'owner',
-                                id: '11111@group.calendar.google.com',
-                                colorId: '12',
-                                backgroundColor: '#fad165',
-                                foregroundColor: '#000000',
-                                timeZone: 'America/Los_Angeles',
-                                etag: '""',
-                                description: 'Time table',
-                                conferenceProperties: [Object]
-                            },
-                            {
-                                summaryOverride: 'Family',
-                                summary: 'Family',
-                                accessRole: 'writer',
-                                defaultReminders: [],
-                                timeZone: 'UTC',
-                                id: 'family111111@group.calendar.google.com',
-                                foregroundColor: '#000000',
-                                conferenceProperties: [Object],
-                                colorId: '24',
-                                etag: '""',
-                                backgroundColor: '#a47ae2',
-                                kind: 'calendar#calendarListEntry',
-                                selected: true
-                            },
-                            {
-                                description: 'Google person birthday etc',
-                                colorId: '13',
-                                foregroundColor: '#000000',
-                                backgroundColor: '#92e1c0',
-                                id: 'addressbook#contacts@group.v.calendar.google.com',
-                                accessRole: 'reader',
-                                etag: '""',
-                                kind: 'calendar#calendarListEntry',
-                                timeZone: 'America/Los_Angeles',
-                                defaultReminders: [],
-                                summaryOverride: 'birthday',
-                                summary: 'birthday',
-                                conferenceProperties: [Object]
-                            }],
-                    kind: 'calendar#calendarList',
-                    nextSyncToken: '',
-                    etag: '""'
-                }
-
+    MockData = require ('./__tests__/min/MockData.js');
+    Calendar = {CalendarList: {
+        list: ()=> {
+            return {
+                items: []
             }
         }
-    }
+    }}
 }
 const API = (() => {
     /**
@@ -128,25 +47,17 @@ const API = (() => {
     }
 
     function getCancelledTaggedNotionPages() {
-        const {
-            notArchived,
-            priorityIsSchedule,
-            doDateNotEmpty,
-            // @Todo tag 에서 select 로 바뀌면서 둘은 함께가 아니라 경합하는 사이. 그래서 이렇게 둘 다 써줄 필요가 없는데.
-            // 하직 뒷부분 코드를 안봐서 뭐가 있는 지 모르니 나중에 필요 없어지면 제거할 것
-            ignoredTagFilter,
-            cancelledTagFilter
-        } = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, notArchived,extFilter} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             filter: {
                 and: [
+                    // 보관되지 않음
                     notArchived,
-                    doDateNotEmpty,
-                    priorityIsSchedule,
-                    // 무시아니고 취소만됨
-                    cancelledTagFilter(),
+                    // 무시하거나 취소되지 않음
                     ignoredTagFilter(false),
+                    cancelledTagFilter(),
+                    extFilter
                 ]
             }
         };
@@ -155,24 +66,16 @@ const API = (() => {
     }
 
     function getFilteredNotionPages() {
-        const {
-            notArchived,
-            priorityIsSchedule,
-            doDateNotEmpty,
-            ignoredTagFilter,
-            cancelledTagFilter,
-            shouldHaveDateStatsFilterArr
-        } = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, extFilter, notArchived, shouldHaveDateStatsFilterArr} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             sorts: [{timestamp: "last_edited_time", direction: "descending"}],
             filter: {
                 and: [
                     notArchived,
-                    doDateNotEmpty,
-                    priorityIsSchedule,
                     ignoredTagFilter(false),
-                    cancelledTagFilter(false)
+                    cancelledTagFilter(false),
+                    extFilter
                 ],
                 or: [
                     ...shouldHaveDateStatsFilterArr
