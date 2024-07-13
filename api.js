@@ -1,12 +1,81 @@
 if (typeof require !== 'undefined') {
-    MockData = require ('./__tests__/min/MockData.js');
-    Calendar = {CalendarList: {
-        list: ()=> {
-            return {
-                items: []
+    MockData = require('./__tests__/min/MockData.js');
+    Calendar = {
+        CalendarList: {
+            list: () => {
+                return { items:
+                        [ { colorId: '7',
+                            backgroundColor: '#42d692',
+                            conferenceProperties: [Object],
+                            accessRole: 'reader',
+                            description: '대한민국의 공휴일',
+                            etag: '"1658723053756000"',
+                            defaultReminders: [],
+                            summaryOverride: '대한민국의 휴일',
+                            timeZone: 'Asia/Seoul',
+                            id: 'ko.south_korea#holiday@group.v.calendar.google.com',
+                            summary: '대한민국의 휴일',
+                            foregroundColor: '#000000',
+                            kind: 'calendar#calendarListEntry',
+                            selected: true },
+                            { timeZone: 'Asia/Seoul',
+                                accessRole: 'owner',
+                                foregroundColor: '#000000',
+                                primary: true,
+                                backgroundColor: '#9fe1e7',
+                                id: 'baram204@gmail.com',
+                                selected: true,
+                                kind: 'calendar#calendarListEntry',
+                                defaultReminders: [],
+                                conferenceProperties: [Object],
+                                etag: '"1718209136093000"',
+                                summary: '개인',
+                                colorId: '14' },
+                            { defaultReminders: [],
+                                summary: '타임 테이블',
+                                kind: 'calendar#calendarListEntry',
+                                accessRole: 'owner',
+                                id: 'irbdktg0ce0l3haioo7kc05lfg@group.calendar.google.com',
+                                colorId: '12',
+                                backgroundColor: '#fad165',
+                                foregroundColor: '#000000',
+                                timeZone: 'Asia/Seoul',
+                                etag: '"1720409437000000"',
+                                description: '타임 테이블 보기용 달력',
+                                conferenceProperties: [Object] },
+                            { summaryOverride: '가족',
+                                summary: '가족',
+                                accessRole: 'writer',
+                                defaultReminders: [],
+                                timeZone: 'UTC',
+                                id: 'family04088495301278171384@group.calendar.google.com',
+                                foregroundColor: '#000000',
+                                conferenceProperties: [Object],
+                                colorId: '24',
+                                etag: '"1720435922972000"',
+                                backgroundColor: '#a47ae2',
+                                kind: 'calendar#calendarListEntry',
+                                selected: true },
+                            { description: 'Google 주소록에 등록된 사람들의 생일, 기념일, 기타 일정 날짜를 표시합니다.',
+                                colorId: '13',
+                                foregroundColor: '#000000',
+                                backgroundColor: '#92e1c0',
+                                id: 'addressbook#contacts@group.v.calendar.google.com',
+                                accessRole: 'reader',
+                                etag: '"1720435939916000"',
+                                kind: 'calendar#calendarListEntry',
+                                timeZone: 'Asia/Seoul',
+                                defaultReminders: [],
+                                summaryOverride: '생일',
+                                summary: '생일',
+                                conferenceProperties: [Object] } ],
+                    kind: 'calendar#calendarList',
+                    nextSyncToken: 'CMja8I-qnIcDEhJiYXJhbTIwNEBnbWFpbC5jb20=',
+                    etag: '"p334dls4flae8e0o"' }
+
             }
         }
-    }}
+    }
 }
 const API = (() => {
     /**
@@ -47,7 +116,7 @@ const API = (() => {
     }
 
     function getCancelledTaggedNotionPages() {
-        const {ignoredTagFilter, cancelledTagFilter, notArchived,extFilter} = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, notArchived, extFilter} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             filter: {
@@ -66,7 +135,13 @@ const API = (() => {
     }
 
     function getFilteredNotionPages() {
-        const {ignoredTagFilter, cancelledTagFilter, extFilter, notArchived, shouldHaveDateStatsFilterArr} = RULES.FILTER
+        const {
+            ignoredTagFilter,
+            cancelledTagFilter,
+            extFilter,
+            notArchived,
+            shouldHaveDateStatsFilterArr
+        } = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             sorts: [{timestamp: "last_edited_time", direction: "descending"}],

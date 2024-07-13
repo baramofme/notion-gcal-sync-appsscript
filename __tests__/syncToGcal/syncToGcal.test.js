@@ -21,7 +21,7 @@ function runTests() {
     const test = new UnitTestingApp();
     test.enable();
     test.clearConsole();
-    test.levelInfo = 1;
+    test.levelInfo = 2;
 
     test.runInGas(false);
     test.printHeader('LOCAL TESTS');
@@ -29,9 +29,8 @@ function runTests() {
      * Run Local Tests Here
      ************************/
 
-    test.printSubHeader("Testing Convert Notion Page to Common Event");
-
     const data = new MockData();
+    // 별도의 파일로 빼고, 테스트 때 위에서 require 하는 것도 좋을듯. 일단은 이렇게 쓰고
     const cancelledEvent = {
         "object": "list",
         "results": [
@@ -870,19 +869,43 @@ function runTests() {
     };
     data.addData('cancelledEvent', cancelledEvent);
 
+    // helper function to print before converted values with given key
+    const getBeforeVal = (key) => RULES.CONVERT.eventPropertyExtractionRules[key](UTIL).extFunc(notionDbPage)
+
+    test.printHeader("Testing Convert Notion Page to Common Event")
+    const notionDbPage = data.getData('cancelledEvent').results[0]
+    let proxyObj = new CommonEvent(RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS)
+    let commonEvent = proxyObj.importFromNotion(notionDbPage, UTIL)
+
+    // console.log(notionDbPage.properties)
+    console.log(proxyObj.data)
+
+    test.printSubHeader("Proxy Getter and Setters");
     test.assert(() => {
-            const notionDbPage = data.getData('cancelledEvent').results[0]
-            let commonEventObj = new CommonEvent(RULES.eventPropertyExtractionRules,CALENDAR_IDS)
-            commonEventObj = commonEventObj.importFromNotion(notionDbPage,UTIL)
+        return proxyObj === commonEvent
+    }, "Proxy Events Object should be identical")
+    test.assert(() => {
+        return commonEvent["gCalCalId"]
+            && commonEvent.gCalCalId
+    }, "Proxy getter working")
 
-            console.log(commonEventObj)
-//            console.log(commonEventObj.gCalCalId)
-//            console.log(commonEventObj.gCalName)
+    test.printSubHeader("Convert Processing");
+    test.assert(() => {
+        return getBeforeVal("gCalCalId")
+        === proxyObj.gCalCalId
+    }, "before and after props value matched")
+    test.assert(() => {
+        // allday value should be boolean type
+         const alldaypass = commonEvent.allDay === false
+        // lastSyncDate value sould be string type.
+        const lassyncdatapass = commonEvent.lastSyncDate === '2024-07-10T11:06:00.000+00:00'
+        // hasGcalInfo value sould be boolean type.
+        const hasgcalinfopass = commonEvent.hasGcalInfo === true
+        const recentlyupdatedpass = commonEvent.recentlyUpdated === true
+        const calendarmatchedpass = commonEvent.calendarMatched === true
 
-            return true
-        }
-        , 'Proxy Getter should be working');
-
+        return alldaypass && lassyncdatapass && hasgcalinfopass && recentlyupdatedpass && calendarmatchedpass
+    }, "extra props processed properly")
 
 
 //    test.assert(() => {

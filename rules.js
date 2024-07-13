@@ -74,11 +74,12 @@ const RULES = (() => {
 
                 if (date.end === null) allDay = false
                 if (startHasTime && !date.end) allDay = false
+                return allDay
             }
         }),
         lastSyncDate: (util) => ({
             required: false,
-            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start && 0,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start || 0,
             convFunc: (obj) => obj
         }),
         lastEditedTime: (util) => ({
@@ -89,7 +90,7 @@ const RULES = (() => {
         recentlyUpdated: (util) => ({
             required: false,
             extFunc: (notionDbPage) => ({
-                lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start && 0,
+                lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start || 0,
                 lastEditedTime: notionDbPage.last_edited_time
             }),
             convFunc: ({lastSyncDate, lastEditedTime}) => new Date(lastSyncDate) < new Date(lastEditedTime)
