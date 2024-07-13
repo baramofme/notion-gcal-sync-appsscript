@@ -1,7 +1,8 @@
 if (typeof require !== 'undefined') {
-    MockData = require('./__tests__/min/MockData.js');
-    CommonEvent = require('./CommonEvent.js')
+  MockData = require ('./__tests__/min/MockData.js');
+  CommonEvent = require ('./CommonEvent.js')
 }
+
 const UTIL = (() => {
 
     function getBeforeVal(notionDbPage, key, rules) {
@@ -221,6 +222,7 @@ const UTIL = (() => {
      * @param {String[]} existing_tags - existing tags to add to event
      * @returns {Object} notion property object
      */
+
 // function convertToNotionProperty(event, existing_tags = []) {
 //   let properties = getBaseNotionProperties(event.id, event.c_name);
 
@@ -308,12 +310,12 @@ const UTIL = (() => {
 //   return properties;
 // }
 
-    /**
-     * Return base notion JSON property object including generation time
-     * @param {String} event_id - event id
-     * @param {String} calendar_name - calendar key name
-     * @returns {Object} - base notion property object
-     *  */
+  /**
+   * Return base notion JSON property object including generation time
+   * @param {String} event_id - event id
+   * @param {String} calendar_name - calendar key name
+   * @returns {Object} - base notion property object
+   *  */
 // function getBaseNotionProperties(event_id, calendar_name) {
 //   return {
 //     [CONFIG.LAST_SYNC_PROP_NOTION]: {
@@ -346,12 +348,15 @@ const UTIL = (() => {
 // }
 
 
-    /**
-     * 속성이 노션에 유효한 지 확인
-     *
-     * @param {*} properties Properties object to check
-     * @returns false if invalid, true if valid
-     */
+
+
+
+  /**
+   * 속성이 노션에 유효한 지 확인
+   *
+   * @param {*} properties Properties object to check
+   * @returns false if invalid, true if valid
+   */
 // function checkNotionProperty(properties) {
 //   // Check if description is too long
 //   if (properties[CONFIG.DESCRIPTION_PROP_NOTION].rich_text[0].text.content.length > 2000) {
@@ -363,10 +368,11 @@ const UTIL = (() => {
 // }
 
 
-    /**
-     * Error thrown when an event is invalid and cannot be
-     * pushed to either Google Calendar or Notion.
-     */
+
+  /**
+   * Error thrown when an event is invalid and cannot be
+   * pushed to either Google Calendar or Notion.
+   */
 // class InvalidEventError extends Error {
 //   constructor(message) {
 //     super(message);
@@ -374,10 +380,10 @@ const UTIL = (() => {
 //   }
 // }
 
-    /**
-     * Get notion page ID of corresponding gCal event. Returns null if no page found.
-     * @param {CalendarEvent} event - Modiffied gCal event object
-     */
+  /**
+   * Get notion page ID of corresponding gCal event. Returns null if no page found.
+   * @param {CalendarEvent} event - Modiffied gCal event object
+   */
 // function getPageId(event) {
 //   const url = NOTION_CREDENTIAL_OBJ.databaseUrl();
 //   const payload = {
@@ -409,16 +415,16 @@ const UTIL = (() => {
 //   return null;
 // }
 
-    /**
-     * Sync to google calendar from Notion
-     * @returns {Set[String]} - Array of event IDs that were modified through event creation
-     */
+  /**
+   * Sync to google calendar from Notion
+   * @returns {Set[String]} - Array of event IDs that were modified through event creation
+   */
 
-    /**
-     * Determine if gcal events need to be updated, removed, or added to the database
-     * @param {CalendarEvent[]} events Google calendar events
-     * @param {Set[String]} ignored_eIds Event IDs to not act on.
-     */
+  /**
+   * Determine if gcal events need to be updated, removed, or added to the database
+   * @param {CalendarEvent[]} events Google calendar events
+   * @param {Set[String]} ignored_eIds Event IDs to not act on.
+   */
 // function parseEvents(events, ignored_eIds) {
 //   let requests = [];
 //   for (let i = 0; i < events.items.length; i++) {
@@ -509,10 +515,10 @@ const UTIL = (() => {
 //   }
 // }
 
-    /**
-     * Deals with event cancelled from gCal side
-     * @param {CalendarEvent} event - Modiffied gCal event object
-     */
+  /**
+   * Deals with event cancelled from gCal side
+   * @param {CalendarEvent} event - Modiffied gCal event object
+   */
 // function handleEventCancelled(event) {
 //   const page_id = getPageId(event);
 
@@ -522,6 +528,7 @@ const UTIL = (() => {
 //     console.log("Event %s not found in Notion database. Skipping.", event.id);
 //   }
 // }
+
 
     function extNessasaryPproperly(event) {
         return {
@@ -560,6 +567,7 @@ const UTIL = (() => {
         splitEventFoUpdate,
         extNessasaryPproperly
     }
+
 })()
 
 if (typeof module !== 'undefined') module.exports = UTIL;

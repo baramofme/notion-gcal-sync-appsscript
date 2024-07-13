@@ -15,26 +15,28 @@ let CommonEvent = (function () {
     const _commonEvent = new WeakMap();
 
     class CommonEvent {
-        constructor(rulesObj, calendarList) {
+        constructor(rulesObj, calendarList, mockData) {
             //if (!(startTime instanceof Date)) throw new Error('startTime is not a valid date-time format');
             //if (!(endTime instanceof Date)) throw new Error('endTime is not a valid date-time format');
             //const headers = ['Start Time', 'End Time', 'Title', 'Location', 'Confirmed', 'Guests'];
             // _commonEvent.set(this, [headers]);
 
-            _commonEvent.set(this, {})
-            this.rulesObj = rulesObj
-            this.calendarsObj = calendarList
+            this.rulesObj = rulesObj;
+            this.calendarsObj = calendarList;
 
             // if mock data is provided, use it. else, initialize with headers.
             if (mockData) {
-                _commonEvent.set(this, mockData.getData('testCalData'));
+                // _commonEvent.set(this, mockData.getData('testCalData'));
                 return this;
             }
-            this.proxy = new Proxy((this), {
+
+            return new Proxy(this,{
                 get: (target, prop, receiver) => {
                     // for finding function, convert it to String
                     const propName = prop.toString();
-                    if (propName in target) {
+                    // Cases where props overlap on both sides are not considered.
+                    // currently, we have only 2 member variables. so this it might be overkill.
+                    if (propName in target){
                         const value = target[prop];
                         if (value instanceof Function) {
                             return function (...args) {
@@ -48,6 +50,7 @@ let CommonEvent = (function () {
                     if (propName in _commonEvent.get(target)) {
                         return _commonEvent.get(target)[prop];
                     }
+
                 },
                 set: (target, prop, value) => {
                     const propName = prop.toString();
@@ -55,14 +58,12 @@ let CommonEvent = (function () {
                     if (propName in _commonEvent.get(target)) {
                         _commonEvent.get(target)[prop] = value;
                     }
-                    if (propName in target) {
+                    if (propName in target){
                         //if (prop === 'print') return target.print(value);
                         target[prop] = value;
                     }
                 }
             })
-
-            return this.proxy
         }
 
         importFromNotion(notionDbPage, utils) {
@@ -70,6 +71,7 @@ let CommonEvent = (function () {
             let obj = {}
 
             const ruleKeys = Object.keys(this.rulesObj)
+            console.log(this.rulesObj)
             ruleKeys.forEach(key => {
                 const {extFunc, convFunc} = this.rulesObj[key](utils)
                 obj[key] = convFunc(extFunc(notionDbPage))
@@ -82,16 +84,16 @@ let CommonEvent = (function () {
                     // 이름만 맞으면 생성이나 이동이 가능
                     //&& obj.gCalCalId === this.calendarsObj[name].id
             })
+
             obj["hasGcalInfo"] = !!obj.gCalEId && !!obj.gCalCalName
 
-            _commonEvent.set(this, obj)
-            return this.proxy
-        }
 
-        get data() {
-            return _commonEvent.get(this)
+            _commonEvent.set(this, obj)
+            console.log(_commonEvent.get(this))
+            return this
         }
     }
+
     return CommonEvent;
 })();
 

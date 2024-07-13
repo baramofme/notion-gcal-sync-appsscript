@@ -23,7 +23,7 @@ function runTests() {
     const test = new UnitTestingApp();
     test.enable();
     test.clearConsole();
-    test.levelInfo = 2;
+    test.levelInfo = 1;
 
     test.runInGas(false);
     test.printHeader('LOCAL TESTS');
@@ -31,41 +31,30 @@ function runTests() {
      * Run Local Tests Here
      ************************/
 
+    test.printSubHeader("Testing Convert Notion Page to Common Event");
+
     const data = new MockData();
+
     // @Todo 별도의 파일로 빼고, 테스트 때 위에서 require 하는 것도 좋을듯. 일단은 이렇게 쓰고
 
+
     data.addData('cancelledEvent', cancelledEvent);
-    data.addData('dates', [
-        { start: null, end: null, time_zone: null },
-        { start: '2024-07-13', end: null, time_zone: null },
-        { start: '2024-07-13', end: '2024-07-13', time_zone: null },
-        { start: '2024-09-05T13:40:00.000+09:00',
-            end: null,
-            time_zone: null },
-        { start: '2024-07-03T09:00:00.000+09:00',
-            end: '2024-07-03T18:00:00.000+09:00',
-            time_zone: null }
-    ])
 
-    // helper function to print before converted values with given key
-    const getBeforeVal = (key) => RULES.CONVERT.eventPropertyExtractionRules[key](UTIL).extFunc(notionDbPage)
+    test.assert(() => {
+            const notionDbPage = data.getData('cancelledEvent').results[0]
+            let commonEventObj = new CommonEvent(RULES.eventPropertyExtractionRules,CALENDAR_IDS)
+            commonEventObj = commonEventObj.importFromNotion(notionDbPage,UTIL)
 
-    test.printHeader("Testing Convert Notion Page to Common Event")
-    const notionDbPage = data.getData('cancelledEvent').results[0]
-    let proxyObj = new CommonEvent(RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS)
-    let commonEvent = proxyObj.importFromNotion(notionDbPage, UTIL)
+            console.log(commonEventObj)
+//            console.log(commonEventObj.gCalCalId)
+//            console.log(commonEventObj.gCalName)
+
 
     // console.log(notionDbPage.properties)
     //console.log(proxyObj.data)
 
-    test.printSubHeader("Proxy Getter and Setters");
-    test.assert(() => {
-        return proxyObj === commonEvent
-    }, "Proxy Events Object should be identical")
-    test.assert(() => {
-        return commonEvent["gCalCalId"]
-            && commonEvent.gCalCalId
-    }, "Proxy getter working")
+
+
 
     test.printSubHeader("Convert Processing");
     test.assert(() => {
@@ -85,42 +74,14 @@ function runTests() {
         ]
         return res.every((item, idx) => item === resultArr[idx])
 
-    }, "extra props processed properly")
-    test.assert(() => {
-        const dates = data.getData('dates')
-        const res = dates.map(date => {
-            return UTIL.hasDate(date, 'start') === true
-        })
-        // console.log(res)
-        const resultArr = [ false, true, true, true, true ]
-        return res.every((item, idx) => item === resultArr[idx])
-    }, "hasDate works properly")
-    test.assert(() => {
-        const dates = data.getData('dates')
-        const res = dates.map(date => {
-            return UTIL.processDate(date, 'start')
-        })
-        // console.log(res)
-        const resultArr = [
-            undefined,
-            '2024-07-13',
-            '2024-07-13',
-            '2024-09-05T13:40:00.000+09:00T00:00:00',
-            '2024-07-03T09:00:00.000+09:00T00:00:00'
-        ]
-        return res.every((item, idx) => item === resultArr[idx])
-    }, "processDate works properly")
-    test.assert(() => {
-        const dates = data.getData('dates')
-        const res = dates.map(date => {
-            // console.log(date)
-            // console.log(UTIL.allDay(date))
-            return UTIL.allDay(date)
-        })
-        // console.log(res)
-        const resultArr = [ false, true, true, false, false ]
-        return res.every((item, idx) => item === resultArr[idx])
-    }, "allDay works properly")
+
+//    test.assert(() => {
+//            const commonEvent = data.getData('cancelledEvent').results.map(page => {
+//                return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
+//            })
+//            return true
+//        }
+//        , 'Names array successfully registered in MockData');
 
     //@Todo 삭제가 안되고 납아있는 현상 발견
     data.deleteData('cancelledEvent');

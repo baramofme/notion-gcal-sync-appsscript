@@ -1,4 +1,5 @@
 if (typeof require !== 'undefined') {
+
     MockData = require('./__tests__/min/MockData.js');
     Calendar = {
         CalendarList: {
@@ -87,7 +88,7 @@ if (typeof require !== 'undefined') {
 
             }
         }
-    }
+    }}
 }
 const API = (() => {
     /**
@@ -128,25 +129,17 @@ const API = (() => {
     }
 
     function getCancelledTaggedNotionPages() {
-        const {
-            notArchived,
-            priorityIsSchedule,
-            doDateNotEmpty,
-            // @Todo tag 에서 select 로 바뀌면서 둘은 함께가 아니라 경합하는 사이. 그래서 이렇게 둘 다 써줄 필요가 없는데.
-            // 하직 뒷부분 코드를 안봐서 뭐가 있는 지 모르니 나중에 필요 없어지면 제거할 것
-            ignoredTagFilter,
-            cancelledTagFilter
-        } = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, notArchived,extFilter} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             filter: {
                 and: [
+                    // 보관되지 않음
                     notArchived,
-                    doDateNotEmpty,
-                    priorityIsSchedule,
-                    // 무시아니고 취소만됨
-                    cancelledTagFilter(),
+                    // 무시하거나 취소되지 않음
                     ignoredTagFilter(false),
+                    cancelledTagFilter(),
+                    extFilter
                 ]
             }
         };
@@ -155,24 +148,16 @@ const API = (() => {
     }
 
     function getFilteredNotionPages() {
-        const {
-            notArchived,
-            priorityIsSchedule,
-            doDateNotEmpty,
-            ignoredTagFilter,
-            cancelledTagFilter,
-            shouldHaveDateStatsFilterArr
-        } = RULES.FILTER
+        const {ignoredTagFilter, cancelledTagFilter, extFilter, notArchived, shouldHaveDateStatsFilterArr} = RULES.FILTER
         const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
         const payload = {
             sorts: [{timestamp: "last_edited_time", direction: "descending"}],
             filter: {
                 and: [
                     notArchived,
-                    doDateNotEmpty,
-                    priorityIsSchedule,
                     ignoredTagFilter(false),
-                    cancelledTagFilter(false)
+                    cancelledTagFilter(false),
+                    extFilter
                 ],
                 or: [
                     ...shouldHaveDateStatsFilterArr
