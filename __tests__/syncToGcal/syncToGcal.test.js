@@ -41,6 +41,24 @@ function runTests() {
                 "archived": false,
                 "in_trash": false,
                 "properties": {
+                    "마지막 동기화": {
+                        "id": "",
+                        "type": "date",
+                        "date": {
+                            "start": "2024-07-10T11:06:00.000+00:00",
+                            "end": null,
+                            "time_zone": null
+                        }
+                    },
+                    "달력": {
+                        "id": "",
+                        "type": "select",
+                        "select": {
+                            "id": "",
+                            "name": "개인",
+                            "color": "gray"
+                        }
+                    },
                     "달력 ID": {
                         "id": "",
                         "type": "select",
@@ -156,6 +174,29 @@ function runTests() {
                             }
                         ]
                     },
+                    "위치": {
+                        "id": "",
+                        "type": "rich_text",
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": "",
+                                    "link": null
+                                },
+                                "annotations": {
+                                    "bold": false,
+                                    "italic": false,
+                                    "strikethrough": false,
+                                    "underline": false,
+                                    "code": false,
+                                    "color": "default"
+                                },
+                                "plain_text": "",
+                                "href": null
+                            }
+                        ]
+                    },
                 },
                 "url": "",
                 "public_url": null
@@ -184,7 +225,7 @@ function runTests() {
     let commonEvent = proxyObj.importFromNotion(notionDbPage, UTIL)
 
     // console.log(notionDbPage.properties)
-    console.log(proxyObj.data)
+    //console.log(proxyObj.data)
 
     test.printSubHeader("Proxy Getter and Setters");
     test.assert(() => {
@@ -206,10 +247,10 @@ function runTests() {
             commonEvent.hasGcalInfo, commonEvent.recentlyUpdated,
             commonEvent.calendarMatched
         ]
-        // console.log(res)
+        //console.log(res)
         const resultArr = [
             true, '2024-07-10T11:06:00.000+00:00',
-            true, true, true
+            true, true, false
         ]
         return res.every((item, idx) => item === resultArr[idx])
 
