@@ -1,81 +1,226 @@
 if (typeof require !== 'undefined') {
-  MockData = require ('./__tests__/min/MockData.js');
-  CommonEvent = require ('./CommonEvent.js')
+    MockData = require('./__tests__/min/MockData.js');
+    CommonEvent = require('./CommonEvent.js')
 }
-const UTIL = (()=> {
+const UTIL = (() => {
 
-  // 후처리 - 노션 정보 추출 시 rich text
-  /**
-   * Flattens rich text properties into a singular string.
-   * @param {Object} rich_text_result - Rich text property to flatten
-   * @return {String} - Flattened rich text
-   * */
-  function flattenRichText(rich_text_result) {
-    let plain_text = "";
-
-    plain_text = rich_text_result.map((result)=>{
-      return result.rich_text
-          ? result.rich_text.plain_text
-          : result.plain_text;
-    }).join()
-
-    return plain_text;
-  }
-
-  function convertPageToCommonEvent(notionDbPage, rulesObj, calendarList, utils){
-    const commonEventObj = new CommonEvent(rulesObj,calendarList)
-    return commonEventObj.importFromNotion(notionDbPage,utils)
-  }
-
-  // 후처리 - 노션 정보 추출 시 날짜
-  // https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
-  // "2021-10-15T12:00:00-07:00"
-  function processDate(startOrEndTypeStr, datePropObj) {
-
-    const isCurntTurnEnd = startOrEndTypeStr === "end"
-
-    let curntProcValue = datePropObj[startOrEndTypeStr]
-    let startValue = datePropObj["start"]
-    let endValue = datePropObj["end"]
-
-    const noTime = curntProcValue?.search(/([A-Z])/g) === -1
-    const startHasTime = startValue && !noTime
-
-    // time should be added
-    if(curntProcValue && noTime) curntProcValue += "T00:00:00"
-
-    // if start has time withoud end,
-    // make end with time +30m
-    if(isCurntTurnEnd  && !endValue && startHasTime) {
-      let default_end = new Date(datePropObj.start);
-      default_end.setMinutes(default_end.getMinutes() + 30);
-      curntProcValue = default_end.toISOString();
+    function getBeforeVal(notionDbPage, key, rules) {
+        return rules.CONVERT.eventPropertyExtractionRules[key](UTIL).extFunc(notionDbPage)
     }
 
-    return curntProcValue
+    // 후처리 - 노션 정보 추출 시 rich text
+    /**
+     * Flattens rich text properties into a singular string.
+     * @param {Object} rich_text_result - Rich text property to flatten
+     * @return {String} - Flattened rich text
+     * */
+    function flattenRichText(rich_text_result) {
+        let plain_text = "";
 
-  }
+        plain_text = rich_text_result.map((result) => {
+            return result.rich_text
+                ? result.rich_text.plain_text
+                : result.plain_text;
+        }).join()
 
-  function isEmptyObject(param) {
-    return Object.keys(param).length === 0 && param.constructor === Object;
-  }
+        return plain_text;
+    }
 
-  // function getRelativeDate(daysOffset, hour) {
-  //   let date = new Date();
-  //   date.setDate(date.getDate() + daysOffset);
-  //   date.setHours(hour);
-  //   date.setMinutes(0);
-  //   date.setSeconds(0);
-  //   date.setMilliseconds(0);
-  //   return date;
-  // }
+    function convertPageToCommonEvent(notionDbPage, rulesObj, calendarList, utils) {
+        const commonEventObj = new CommonEvent(rulesObj, calendarList)
+        return commonEventObj.importFromNotion(notionDbPage, utils)
+    }
 
-  /**
-   * Return notion JSON property object based on event data
-   * @param {CalendarEvent} event modified GCal event object
-   * @param {String[]} existing_tags - existing tags to add to event
-   * @returns {Object} notion property object
-   */
+    function writable(calendarList, gCalCalName) {
+        if(!gCalCalName) return false
+        //console.log(calendarList)
+        //console.log(gCalCalId)
+        const writableCalendar = Object.keys(calendarList).find(key =>
+            calendarList[key].writable && calendarList[key].summary === gCalCalName
+        )
+        return !!writableCalendar
+    }
+
+    // { start: '2024-07-13', end: null, time_zone: null }
+    function hasDate(datePropObj, startOrEndTypeStr) {
+
+        //console.log(datePropObj)
+        let hasDate = true
+
+        const propObjEmpty = UTIL.isEmptyObject(datePropObj)
+        // console.log("propObjEmpty", propObjEmpty)
+        if (propObjEmpty) return
+
+        const propObjHasNoTargetProp = !Object.hasOwn(datePropObj, startOrEndTypeStr)
+        // console.log("propObjHasNoTargetProp", propObjHasNoTargetProp)
+
+        if (propObjHasNoTargetProp) hasDate = false
+
+        const propOBjHasNoTargetValue = !datePropObj[startOrEndTypeStr]
+
+        if (propOBjHasNoTargetValue) hasDate = false
+
+        return hasDate
+    }
+
+    // 후처리 - 노션 정보 추출 시 날짜
+    // https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
+    // "2021-10-15T12:00:00-07:00"
+    function processDate(datePropObj, startOrEndTypeStr) {
+        // console.log('f processDate :', datePropObj, startOrEndTypeStr)
+        const hasDate = UTIL.hasDate(datePropObj, startOrEndTypeStr)
+        // console.log('f hasDate :', hasDate)
+        if (!hasDate) return
+
+        const isCurntTurnEnd = startOrEndTypeStr === "end"
+
+        let curntProcValue = datePropObj[startOrEndTypeStr]
+        let startValue = UTIL.hasDate(datePropObj, "end")
+        let endValue = UTIL.hasDate(datePropObj, "end")
+
+        const noTime = UTIL.hasTime(datePropObj, startOrEndTypeStr)
+        const startHasTime = startValue && !noTime
+
+        // time should be added
+        if (curntProcValue && noTime) curntProcValue += "T00:00:00"
+
+        // if start has time withoud end,
+        // make end with time +30m
+        if (isCurntTurnEnd && !endValue && startHasTime) {
+            let default_end = new Date(datePropObj.start);
+            default_end.setMinutes(default_end.getMinutes() + 30);
+            curntProcValue = default_end.toISOString();
+        }
+
+        return curntProcValue
+
+    }
+
+    function hasTime(dates, startOrEndTypeStr) {
+        return dates[startOrEndTypeStr] && dates[startOrEndTypeStr].search(/([A-Z])/g) !== -1
+    }
+
+    // Events that are marked as all day don't have a start or end time but rather mark the whole. Think of a holiday, a birthday,...
+    // https://support.google.com/calendar/thread/188156659?hl=en&msgid=188159647
+    function allDay(dates) {
+        const noStartDate = !UTIL.hasDate(dates, 'start')
+        const noEndDate = !UTIL.hasDate(dates, 'end')
+
+        if (noStartDate || (noStartDate && noEndDate)) return false
+
+        const startHasNoTime = !UTIL.hasTime(dates, 'start')
+        const endHasNoTime = !UTIL.hasTime(dates, 'end')
+
+        let allDay = false
+
+        if (noEndDate) {
+            if (startHasNoTime) allDay = true
+        } else {
+            if (startHasNoTime && endHasNoTime) allDay = true
+        }
+
+        return allDay
+    }
+
+    function isEmptyObject(param) {
+        return !param || Object.keys(param).length === 0 && param.constructor === Object;
+    }
+
+    function splitEventFoUpdate(needUpdateEvents) {
+
+        const syncableList = {
+            needUpdateList: {data: [], ids: [], synced: []},
+            needRecreateList: {data: [], ids: [], synced: []},
+            needCreateList: {data: [], ids: [], synced: []},
+        }
+        const unSyncableList = {
+            noDateList: {data: [], ids: []},
+            noAuthorizedList: {data: [], ids: []},
+            unknowReasonList: {data: [], ids: []},
+        }
+
+
+        needUpdateEvents.forEach((commonEvent) => {
+
+            const syncable = commonEvent.hasDate && commonEvent.gCalWritable
+
+            const needUpdate = commonEvent.hasGcalInfo && commonEvent.calendarMatched
+            const needRecreate = commonEvent.hasGcalInfo && !commonEvent.calendarMatched
+            const needCreate = !commonEvent.hasGcalInfo && commonEvent.calendarMatched
+
+            const gCalEId = commonEvent.gCalEId
+            const gCalCalId = commonEvent.gCalCalId
+            const gCalCalName = commonEvent.gCalCalName
+
+            const data = commonEvent.data
+
+            if (syncable) {
+                if (needUpdate) {
+                    syncableList.needUpdateList.data.push(data)
+                    syncableList.needUpdateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+
+                if (needRecreate) {
+                    syncableList.needRecreateList.data.push(data)
+                    syncableList.needRecreateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+                if (needCreate) {
+                    syncableList.needCreateList.data.push(data)
+                    syncableList.needCreateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+            } else {
+                if (!commonEvent.hasDate)
+                    unSyncableList.noDateList.data.push(data)
+                    unSyncableList.noDateList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+                if (!commonEvent.writable)
+                    unSyncableList.noAuthorizedList.data.push(data)
+                    unSyncableList.noAuthorizedList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+                if (!commonEvent.hasDate && !commonEvent.writable)
+                    unSyncableList.unknowReasonList.data.push(data)
+                    unSyncableList.unknowReasonList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+            }
+        })
+
+        return {
+            syncableList,
+            unSyncableList
+        }
+    }
+
+    // function getRelativeDate(daysOffset, hour) {
+    //   let date = new Date();
+    //   date.setDate(date.getDate() + daysOffset);
+    //   date.setHours(hour);
+    //   date.setMinutes(0);
+    //   date.setSeconds(0);
+    //   date.setMilliseconds(0);
+    //   return date;
+    // }
+
+    /**
+     * Return notion JSON property object based on event data
+     * @param {CalendarEvent} event modified GCal event object
+     * @param {String[]} existing_tags - existing tags to add to event
+     * @returns {Object} notion property object
+     */
 // function convertToNotionProperty(event, existing_tags = []) {
 //   let properties = getBaseNotionProperties(event.id, event.c_name);
 
@@ -163,12 +308,12 @@ const UTIL = (()=> {
 //   return properties;
 // }
 
-  /**
-   * Return base notion JSON property object including generation time
-   * @param {String} event_id - event id
-   * @param {String} calendar_name - calendar key name
-   * @returns {Object} - base notion property object
-   *  */
+    /**
+     * Return base notion JSON property object including generation time
+     * @param {String} event_id - event id
+     * @param {String} calendar_name - calendar key name
+     * @returns {Object} - base notion property object
+     *  */
 // function getBaseNotionProperties(event_id, calendar_name) {
 //   return {
 //     [CONFIG.LAST_SYNC_PROP_NOTION]: {
@@ -201,15 +346,12 @@ const UTIL = (()=> {
 // }
 
 
-
-
-
-  /**
-   * 속성이 노션에 유효한 지 확인
-   *
-   * @param {*} properties Properties object to check
-   * @returns false if invalid, true if valid
-   */
+    /**
+     * 속성이 노션에 유효한 지 확인
+     *
+     * @param {*} properties Properties object to check
+     * @returns false if invalid, true if valid
+     */
 // function checkNotionProperty(properties) {
 //   // Check if description is too long
 //   if (properties[CONFIG.DESCRIPTION_PROP_NOTION].rich_text[0].text.content.length > 2000) {
@@ -221,11 +363,10 @@ const UTIL = (()=> {
 // }
 
 
-
-  /**
-   * Error thrown when an event is invalid and cannot be
-   * pushed to either Google Calendar or Notion.
-   */
+    /**
+     * Error thrown when an event is invalid and cannot be
+     * pushed to either Google Calendar or Notion.
+     */
 // class InvalidEventError extends Error {
 //   constructor(message) {
 //     super(message);
@@ -233,10 +374,10 @@ const UTIL = (()=> {
 //   }
 // }
 
-  /**
-   * Get notion page ID of corresponding gCal event. Returns null if no page found.
-   * @param {CalendarEvent} event - Modiffied gCal event object
-   */
+    /**
+     * Get notion page ID of corresponding gCal event. Returns null if no page found.
+     * @param {CalendarEvent} event - Modiffied gCal event object
+     */
 // function getPageId(event) {
 //   const url = NOTION_CREDENTIAL_OBJ.databaseUrl();
 //   const payload = {
@@ -268,16 +409,16 @@ const UTIL = (()=> {
 //   return null;
 // }
 
-  /**
-   * Sync to google calendar from Notion
-   * @returns {Set[String]} - Array of event IDs that were modified through event creation
-   */
+    /**
+     * Sync to google calendar from Notion
+     * @returns {Set[String]} - Array of event IDs that were modified through event creation
+     */
 
-  /**
-   * Determine if gcal events need to be updated, removed, or added to the database
-   * @param {CalendarEvent[]} events Google calendar events
-   * @param {Set[String]} ignored_eIds Event IDs to not act on.
-   */
+    /**
+     * Determine if gcal events need to be updated, removed, or added to the database
+     * @param {CalendarEvent[]} events Google calendar events
+     * @param {Set[String]} ignored_eIds Event IDs to not act on.
+     */
 // function parseEvents(events, ignored_eIds) {
 //   let requests = [];
 //   for (let i = 0; i < events.items.length; i++) {
@@ -368,10 +509,10 @@ const UTIL = (()=> {
 //   }
 // }
 
-  /**
-   * Deals with event cancelled from gCal side
-   * @param {CalendarEvent} event - Modiffied gCal event object
-   */
+    /**
+     * Deals with event cancelled from gCal side
+     * @param {CalendarEvent} event - Modiffied gCal event object
+     */
 // function handleEventCancelled(event) {
 //   const page_id = getPageId(event);
 
@@ -382,12 +523,43 @@ const UTIL = (()=> {
 //   }
 // }
 
-  return {
-    isEmptyObject, // 안 쓰이는 거 같음
-    flattenRichText,
-    processDate,
-    convertPageToCommonEvent,
-  }
+    function extNessasaryPproperly(event) {
+        return {
+            object: event["object"],
+            id: event["id"],
+            last_edited_time: event["last_edited_time"],
+            archived: event["archived"],
+            in_trash: event["in_trash"],
+            properties: {
+                "마지막 동기화": event["properties"]["마지막 동기화"],
+                "달력": event["properties"]["달력"],
+                "달력 ID": event["properties"]["달력 ID"],
+                "행사 ID": event["properties"]["행사 ID"],
+                "실행일": event["properties"]["실행일"],
+                "보관됨": event["properties"]["보관됨"],
+                "Last Edited": event["properties"]["Last Edited"],
+                "이름": event["properties"]["이름"],
+                "진행 상태": event["properties"]["진행 상태"],
+                "우선순위": event["properties"]["우선순위"],
+                "설명": event["properties"]["설명"],
+                "위치": event["properties"]["위치"],
+            }
+        }
+    }
+
+    return {
+        getBeforeVal,
+        isEmptyObject, // 안 쓰이는 거 같음
+        flattenRichText,
+        hasTime,
+        hasDate,
+        processDate,
+        allDay,
+        writable,
+        convertPageToCommonEvent,
+        splitEventFoUpdate,
+        extNessasaryPproperly
+    }
 })()
 
 if (typeof module !== 'undefined') module.exports = UTIL;

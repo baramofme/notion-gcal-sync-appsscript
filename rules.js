@@ -12,16 +12,22 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.id,
             convFunc: (a) => a
         }),
+        // gCalSummary 와 내용이 같음
+        nTitle: (util) => ({
+            required: false,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
+            convFunc: (arr) => arr[0].content
+        }),
         // Gcal Info
         // @TODO 추상화. 공통 함수를 뽑아서, util 의 기본 값은 그냥 받아서 전달하는 거고, 함수가 들어오면 그걸 쓰도록 하는게 더 좋을듯.
         gCalCalId: (util) => ({
             required: true,
-            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_ID_PROP_NOTION]?.select.name,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_ID_PROP_NOTION].select?.name,
             convFunc: (a) => a
         }),
-        gCalName: (util) => ({
+        gCalCalName: (util) => ({
             required: true,
-            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION]?.select?.name,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
             convFunc: (a) => a
         }),
         // Notion Info
@@ -30,10 +36,15 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_EVENT_ID_PROP_NOTION].rich_text,
             convFunc: util.flattenRichText
         }),
+        gCalWritable: (util) => ({
+            required: true,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
+            convFunc: (gCalCalName)=> util.writable(CALENDAR_IDS, gCalCalName)
+        }),
         gCalSummary: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
-            convFunc: util.flattenRichText
+            convFunc: (arr) => arr[0].content
         }),
         description: (util) => ({
             required: false,
@@ -48,37 +59,28 @@ const RULES = (() => {
         // Common Info
         hasDate: (util) => ({
             required: true,
-            extFunc: (notionDbPage) => !!notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            convFunc: (obj) => obj
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
+            convFunc: (obj) => util.hasDate(obj, 'start')
         }),
         start: (util) => ({
             required: true,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            convFunc: (obj) => util.processDate("start", obj)
+            convFunc: (obj) => util.processDate(obj,"start")
         }),
         end: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            convFunc: (obj) => util.processDate("end", obj)
+            convFunc: (obj) => util.processDate( obj, "end")
         }),
         // Gcal Info
         allDay: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            // @Todo 예도 UTIL 에다가 빼버려?
-            convFunc: (date) => {
-                // @TODO:이거 노션 date 하위에 time 이랑 tiemzone 이 있으니까 대문자 있는 걸로 시간 있는 지 없는 지 확인 안해도 되지 않을까?
-                const startHasTime = date.start && date.start.search(/([A-Z])/g) !== -1
-
-                let allDay = true
-
-                if (date.end === null) allDay = false
-                if (startHasTime && !date.end) allDay = false
-            }
+            convFunc: (obj) => util.allDay(obj)
         }),
         lastSyncDate: (util) => ({
             required: false,
-            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start && 0,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start || 0,
             convFunc: (obj) => obj
         }),
         lastEditedTime: (util) => ({
@@ -89,12 +91,15 @@ const RULES = (() => {
         recentlyUpdated: (util) => ({
             required: false,
             extFunc: (notionDbPage) => ({
-                lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION]?.date.start && 0,
+                lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start || 0,
                 lastEditedTime: notionDbPage.last_edited_time
             }),
             convFunc: ({lastSyncDate, lastEditedTime}) => new Date(lastSyncDate) < new Date(lastEditedTime)
         }),
     }
+
+    // 노션 쿼리 API 필터 정보
+    // https://developers.notion.com/reference/post-database-query-filter#date
 
     // 노션 필더 - 보관 안 됨
     const notArchived = {
@@ -103,8 +108,15 @@ const RULES = (() => {
             "does_not_equal": true
         }
     }
+
+    const doDateNotEmpty = {
+        "property": "실행일",
+        "date": {
+            "is_not_empty": true
+        }
+    }
     // 노션 필터 - 우선순위가 일정인 것만
-    const extFilter = {
+    const priorityIsSchedule = {
         property: CONFIG.EXT_FILTER_PROP_NOTION,
         select: {
             equals: CONFIG.EXT_FILTER_VALUE_NOTION
@@ -182,10 +194,11 @@ const RULES = (() => {
             eventPropertyExtractionRules,
         },
         FILTER: {
+            doDateNotEmpty,
             notArchived,
+            priorityIsSchedule,
             cancelledTagFilter,
             ignoredTagFilter,
-            extFilter,
             shouldHaveDateStatsFilterArr
         }
     }

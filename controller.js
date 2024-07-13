@@ -9,14 +9,14 @@ const CONTROLLER = (()=>{
 
     const response_data = API.NOTION.getCancelledTaggedNotionPages()
 
-    Logger.log(response_data.results[0].properties["이름"].title[0].plain_text);
-    Logger.log(response_data.results.length);
+    //Logger.log(response_data.results[0].properties["이름"].title[0].plain_text);
+    //Logger.log(response_data.results.length);
     return
 
     const commonEvents = response_data.results.map(page => {
       return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
-    const needUpdateEvents = commonEvents.filter(event => event.updatedRecently)
+    const needUpdateEvents = commonEvents.filter(event => event.recentlyUpdated)
 
     const deletedIds = tryDeleteGcalEvent(needUpdateEvents)
 
@@ -49,70 +49,36 @@ const CONTROLLER = (()=>{
     // Get 100 pages in order of when they were last edited.
 
     const response_data = API.NOTION.getFilteredNotionPages();
+
     const commonEvents = response_data.results.map(page => {
       return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
-    const needUpdateEvents = commonEvents.filter(event => event.updatedRecently)
 
-    let modified_eIds = new Set();
-    let noDateEIds = new Set();
+    //commonEvents.forEach(event => {/
+      //console.log(event.data)
+      //const notionItem = response_data.results.find(result => result.id === event.nPageId)
+      //console.log(UTIL.getBeforeVal(notionItem, "start", RULES))
+      //console.log('start',event.data)
+    //})
 
-    needUpdateEvents.forEach((commonEvent)=> {
+    const needUpdateEvents = commonEvents.filter(event => event.recentlyUpdated)
 
-      const syncable = commonEvent.hasDate && commonEvent.writable
+    const splitList = UTIL.splitEventFoUpdate(needUpdateEvents)
 
-      const needUpdate = commonEvent.hasGcalInfo && commonEvent.calendarMatched
-      const needRecreate = commonEvent.hasGcalInfo && !commonEvent.calendarMatched
-      const needCreate = !commonEvent.hasGcalInfo && commonEvent.calendarMatched
+    SERVICE.syncableToGcal(response_data.results, splitList.syncableList, CALENDAR_IDS)
 
-      const gCalEId = commonEvent.gCalEId
-      const gCalCalId = commonEvent.gCalCalId
-      const gCalName = commonEvent.gCalName
-
-      if(syncable){
-        if(needUpdate){
-          // Update commonEvent in original calendar.
-          console.log("[+GC] Updating commonEvent %s in %s.", gCalEId, gCalCalId);
-          API.GCAL.updateGcalEvent(commonEvent, gCalEId, gCalCalId);
-        }
-        // @TODO 진행 중
-        if(needRecreate){
-          API.GCAL.deleteGcalEvent(gCalEId, undefined, CALENDAR_IDS)
-          const modified_eId = SERVICE.createEvent(result, commonEvent, gCalName)
-
-          modified_eIds.add(modified_eId);
-          console.log(
-              "[+GC] Event %s failed to move to %s.",
-              gCalEId,
-              gCalName
-          );
-        }
-        if(needCreate){
-          const modified_eId = SERVICE.createEvent(result, commonEvent, gCalName)
-          console.log("[+GC] Event created in %s.", gCalName);
-          modified_eIds.add(modified_eId);
-        }
-      }else {
-        noDateEIds.add(gCalEId)
-      }
-
-      // Calendar name not found in dictonary. Abort.
-      console.log(
-          "[+GC] Calendar name %s not found in dictionary. Aborting sync.",
-          gCalName
-      );
-      // return modified_eIds;
-    })
-
-    /*
-    if (!event) {
     console.log(
-      "[+GC] Skipping page %s because it is not in the correct format and or is missing required information.",
-      result.id
+      "[+GC] Skipping page %s because it no authorized to write to calendar.",
+        splitList.unSyncableList.noAuthorizedList.ids.join(", ")
     );
-    continue;
-    }
-    */
+    console.log(
+        "[+GC] Skipping page %s because it has no dates.",
+        splitList.unSyncableList.noDateList.ids.join(", ")
+    );
+    console.log(
+        "[+GC] Skipping page %s because it is not in the correct format and or is missing required information.",
+        splitList.unSyncableList.unknowReasonList.ids.join(", ")
+    );
   }
 
   /**
@@ -143,12 +109,9 @@ const CONTROLLER = (()=>{
     do {
       try {
         options.pageToken = pageToken;
-        console.log("syncFromGCal do-try")
-        console.log("options", options)
         //["가족"]: "family04088495301278171384@group.calendar.google.com",
         //["생일"]: "addressbook#contacts@group.v.calendar.google.com"
         events = Calendar.Events.list(CALENDAR_IDS[c_name], options);
-        console.log(events)
         // events1 = Calendar.Events.list("family04088495301278171384@group.calendar.google.com", options);
         // console.log(events1)
         // events2 = Calendar.Events.list("addressbook#contacts@group.v.calendar.google.com", options);

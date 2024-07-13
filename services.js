@@ -1,57 +1,39 @@
-const SERVICE = (()=>{
-  return {
-    createEvent,
-    //getPageFromEvent,
-    //createDatabaseEntry
-    //updateDatabaseEntry,
-  }
+const SERVICE = (() => {
+    return {
+        syncableToGcal,
+        //getPageFromEvent,
+        //createDatabaseEntry
+        //updateDatabaseEntry,
+    }
 })()
 
-/** Create event to Google calendar. Return event ID if successful
- * @param {Object} page - Page object from Notion database
- * @param {Object} event - Event object for gCal
- * @param {String} calendar_name - name of calendar to push event to
- * @return {String} - Event ID if successful, false otherwise
- */
+//@Todo 네이밍이 SyncToGcal 컨트롤러랑 겹치는데??
+function syncableToGcal(result, syncableList, calendarList) {
 
-function createEvent(page, event, calendar_name) {
-  event.summary = event.summary || "";
-  event.description = event.description || "";
-  event.location = event.location || "";
+    const {needUpdateList, needRecreateList, needCreateList} = syncableList
 
-  let calendar_id = CALENDAR_IDS[calendar_name];
-  let options = [event.summary, new Date(event.start)];
-
-  if (event.end && event.all_day) {
-    // add and shift
-    let shifted_date = new Date(event.end);
-    shifted_date.setDate(shifted_date.getDate() + 1);
-    options.push(shifted_date);
-  } else if (event.end) {
-    options.push(new Date(event.end));
-  }
-
-  options.push({ description: event.description, location: event.location });
-
-  let calendar = CalendarApp.getCalendarById(calendar_id);
-  try {
-    let new_event = event.all_day
-        ? calendar.createAllDayEvent(...options)
-        : calendar.createEvent(...options);
-    new_event_id = new_event.getId().split("@")[0];
-  } catch (e) {
-    console.log("Failed to push new event to GCal. %s", e);
-    return false;
-  }
-
-  if (!new_event_id) {
-    console.log("Event %s not created in gCal.", event.summary);
-    return false;
-  }
-  let properties = getBaseNotionProperties(new_event_id, calendar_name);
-  API.NOTION.updateNotionPage(properties, page.id);
-  return new_event_id;
+    needRecreateList.data.forEach(commonEvent => {
+        API.GCAL.deleteGcalEvent(commonEvent.gCalEId, commonEvent.gCalCalId, calendarList)
+        return
+        API.GCAL.createGcalEvent(result, commonEvent, commonEvent.gCalCalName)
+        console.log(
+            "[+GC] Event %s moved to %s.",
+            commonEvent.gCalEId, commonEvent.gCalCalName
+        );
+    })
+    needUpdateList?.data.forEach(commonEvent => {
+        // Update commonEvent in original calendar.
+        API.GCAL.updateGcalEvent(commonEvent);
+        console.log("[+GC] Updating commonEvent %s in %s.",
+            commonEvent.gCalEId, commonEvent.gCalCalId);
+    })
+    needCreateList?.data.forEach(commonEvent => {
+        API.GCAL.createGcalEvent(result, commonEvent, commonEvent.gCalCalName)
+        console.log("[+GC] Event created in %s.", commonEvent.gCalCalName);
+    })
 }
+
+
 
 /**
  * 이벤트를 위한 페이지가 있는 지 그리고 갱신이 필요한 지 판단. 발견되면 페이지 정보 반환ㄴ
