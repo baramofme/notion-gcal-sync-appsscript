@@ -31,6 +31,16 @@ const UTIL = (() => {
         return commonEventObj.importFromNotion(notionDbPage, utils)
     }
 
+    function writable(calendarList, gCalCalName) {
+        if(!gCalCalName) return false
+        //console.log(calendarList)
+        //console.log(gCalCalId)
+        const writableCalendar = Object.keys(calendarList).find(key =>
+            calendarList[key].writable && calendarList[key].summary === gCalCalName
+        )
+        return !!writableCalendar
+    }
+
     // { start: '2024-07-13', end: null, time_zone: null }
     function hasDate(datePropObj, startOrEndTypeStr) {
 
@@ -65,8 +75,8 @@ const UTIL = (() => {
         const isCurntTurnEnd = startOrEndTypeStr === "end"
 
         let curntProcValue = datePropObj[startOrEndTypeStr]
-        let startValue =  UTIL.hasDate(datePropObj, "end")
-        let endValue =  UTIL.hasDate(datePropObj, "end")
+        let startValue = UTIL.hasDate(datePropObj, "end")
+        let endValue = UTIL.hasDate(datePropObj, "end")
 
         const noTime = UTIL.hasTime(datePropObj, startOrEndTypeStr)
         const startHasTime = startValue && !noTime
@@ -96,16 +106,16 @@ const UTIL = (() => {
         const noStartDate = !UTIL.hasDate(dates, 'start')
         const noEndDate = !UTIL.hasDate(dates, 'end')
 
-        if( noStartDate || (noStartDate && noEndDate) ) return false
+        if (noStartDate || (noStartDate && noEndDate)) return false
 
-        const startHasNoTime = !UTIL.hasTime(dates,'start')
-        const endHasNoTime = !UTIL.hasTime(dates,'end')
+        const startHasNoTime = !UTIL.hasTime(dates, 'start')
+        const endHasNoTime = !UTIL.hasTime(dates, 'end')
 
         let allDay = false
 
-        if(noEndDate){
+        if (noEndDate) {
             if (startHasNoTime) allDay = true
-        }else{
+        } else {
             if (startHasNoTime && endHasNoTime) allDay = true
         }
 
@@ -114,6 +124,85 @@ const UTIL = (() => {
 
     function isEmptyObject(param) {
         return !param || Object.keys(param).length === 0 && param.constructor === Object;
+    }
+
+    function splitEventFoUpdate(needUpdateEvents) {
+
+        const syncableList = {
+            needUpdateList: {data: [], ids: [], synced: []},
+            needRecreateList: {data: [], ids: [], synced: []},
+            needCreateList: {data: [], ids: [], synced: []},
+        }
+        const unSyncableList = {
+            noDateList: {data: [], ids: []},
+            noAuthorizedList: {data: [], ids: []},
+            unknowReasonList: {data: [], ids: []},
+        }
+
+
+        needUpdateEvents.forEach((commonEvent) => {
+
+            const syncable = commonEvent.hasDate && commonEvent.gCalWritable
+
+            const needUpdate = commonEvent.hasGcalInfo && commonEvent.calendarMatched
+            const needRecreate = commonEvent.hasGcalInfo && !commonEvent.calendarMatched
+            const needCreate = !commonEvent.hasGcalInfo && commonEvent.calendarMatched
+
+            const gCalEId = commonEvent.gCalEId
+            const gCalCalId = commonEvent.gCalCalId
+            const gCalCalName = commonEvent.gCalCalName
+
+            const data = commonEvent.data
+
+            if (syncable) {
+                if (needUpdate) {
+                    syncableList.needUpdateList.data.push(data)
+                    syncableList.needUpdateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+
+                if (needRecreate) {
+                    syncableList.needRecreateList.data.push(data)
+                    syncableList.needRecreateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+                if (needCreate) {
+                    syncableList.needCreateList.data.push(data)
+                    syncableList.needCreateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName
+                    })
+                }
+            } else {
+                if (!commonEvent.hasDate)
+                    unSyncableList.noDateList.data.push(data)
+                    unSyncableList.noDateList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+                if (!commonEvent.writable)
+                    unSyncableList.noAuthorizedList.data.push(data)
+                    unSyncableList.noAuthorizedList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+                if (!commonEvent.hasDate && !commonEvent.writable)
+                    unSyncableList.unknowReasonList.data.push(data)
+                    unSyncableList.unknowReasonList.ids.push({
+                    gCalEId: gCalEId,
+                    gCalCalName: gCalCalName
+                })
+            }
+        })
+
+        return {
+            syncableList,
+            unSyncableList
+        }
     }
 
     // function getRelativeDate(daysOffset, hour) {
@@ -434,6 +523,30 @@ const UTIL = (() => {
 //   }
 // }
 
+    function extNessasaryPproperly(event) {
+        return {
+            object: event["object"],
+            id: event["id"],
+            last_edited_time: event["last_edited_time"],
+            archived: event["archived"],
+            in_trash: event["in_trash"],
+            properties: {
+                "마지막 동기화": event["properties"]["마지막 동기화"],
+                "달력": event["properties"]["달력"],
+                "달력 ID": event["properties"]["달력 ID"],
+                "행사 ID": event["properties"]["행사 ID"],
+                "실행일": event["properties"]["실행일"],
+                "보관됨": event["properties"]["보관됨"],
+                "Last Edited": event["properties"]["Last Edited"],
+                "이름": event["properties"]["이름"],
+                "진행 상태": event["properties"]["진행 상태"],
+                "우선순위": event["properties"]["우선순위"],
+                "설명": event["properties"]["설명"],
+                "위치": event["properties"]["위치"],
+            }
+        }
+    }
+
     return {
         getBeforeVal,
         isEmptyObject, // 안 쓰이는 거 같음
@@ -442,7 +555,10 @@ const UTIL = (() => {
         hasDate,
         processDate,
         allDay,
+        writable,
         convertPageToCommonEvent,
+        splitEventFoUpdate,
+        extNessasaryPproperly
     }
 })()
 

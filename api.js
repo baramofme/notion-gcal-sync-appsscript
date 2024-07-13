@@ -41,7 +41,7 @@ if (typeof require !== 'undefined') {
                                 summary: 'Time table',
                                 kind: 'calendar#calendarListEntry',
                                 accessRole: 'owner',
-                                id: '11111@group.calendar.google.com',
+                                id: 'time@group.calendar.google.com',
                                 colorId: '12',
                                 backgroundColor: '#fad165',
                                 foregroundColor: '#000000',
@@ -56,7 +56,7 @@ if (typeof require !== 'undefined') {
                                 accessRole: 'writer',
                                 defaultReminders: [],
                                 timeZone: 'UTC',
-                                id: 'family111111@group.calendar.google.com',
+                                id: 'family@group.calendar.google.com',
                                 foregroundColor: '#000000',
                                 conferenceProperties: [Object],
                                 colorId: '24',
@@ -244,21 +244,70 @@ const API = (() => {
         return calendars;
     }
 
+    /** Create event to Google calendar. Return event ID if successful
+     * @param {Object} page - Page object from Notion database
+     * @param {Object} commonEvent - Event object for gCal
+     * @param {String} calendarName - name of calendar to push event to
+     * @return {String} - Event ID if successful, false otherwise
+     */
+
+    function createGcalEvent(page, commonEvent, calendarName) {
+
+        const {
+            gCalEId, gCalCalId, gCalSummary, location,description,
+            start, end, allDay
+        } = commonEvent
+
+        let calendar_id = CALENDAR_IDS[calendarName];
+        let options = [gCalSummary, new Date(start)];
+
+        if (end && allDay) {
+            // add and shift
+            let shifted_date = new Date(end);
+            shifted_date.setDate(shifted_date.getDate() + 1);
+            options.push(shifted_date);
+        } else if (end) {
+            options.push(new Date(end));
+        }
+
+        options.push({description: description, location: location});
+
+        let calendar = CalendarApp.getCalendarById(calendar_id);
+        try {
+            let new_event = allDay
+                ? calendar.createAllDayEvent(...options)
+                : calendar.createEvent(...options);
+            new_event_id = new_event.getId().split("@")[0];
+        } catch (e) {
+            console.log("Failed to push new event to GCal. %s", e);
+            return false;
+        }
+
+        if (!new_event_id) {
+            console.log("Event %s not created in gCal.", gCalSummary);
+            return false;
+        }
+        let properties = getBaseNotionProperties(new_event_id, calendarName);
+        API.NOTION.updateNotionPage(properties, page.id);
+        return new_event_id;
+    }
+
     /** Delete event from Google calendar
-     * @param {String} event_id - Event id to delete
-     * @param {String} calendar_id - Calendar id to delete event from
+     * @param {String} eventId - Event id to delete
+     * @param {String} calendarId - Calendar id to delete event from
      * @param {Object} calendarList -
      * @returns {Boolean} - True if event was deleted, false if not
      */
-    function deleteGcalEvent(event_id, calendar_id, calendarList) {
-        console.log("Deleting event %s from gCal %s", event_id, calendar_id)
+    function deleteGcalEvent(eventId, calendarId, calendarList) {
+        console.log("Deleting event %s from gCal %s", eventId, calendarId)
 
-        if (!calendar_id) {
-            const beforeGCalEventList = API.GCAL.findGcalEventWithin(event_id, calendarList)
+        if (!calendarId) {
+            const beforeGCalEventList = API.GCAL.findGcalEventWithin(eventId, calendarList)
+            console.log("Before delete: ", beforeGCalEventList)
         }
         try {
-            let calendar = CalendarApp.getCalendarById(calendar_id);
-            calendar.getEventById(event_id).deleteGcalEvent();
+            let calendar = CalendarApp.getCalendarById(calendarId);
+            calendar.getEventById(eventId).deleteGcalEvent();
             return true;
         } catch (e) {
             console.log(e);
@@ -269,14 +318,15 @@ const API = (() => {
     // 배열 반환
     // @TODO 할 것
     function findGcalEventWithin(eventId, calendarList) {
-        const calendarIdList = Object.keys(calendarList).map(calKey => {
+        const writableCaleList = Object.keys(calendarList).map(calKey => {
             const cal = calendarList[calKey]
             return cal.writable && cal.id
         })
-        const findResult = calendarIdList.map(calId => {
+        const findResult = writableCaleList.map(calId => {
             const event = Calendar.Events.get(calId, eventId);
             return event
         })
+        return findResult
     }
 
     // @Todo eventId 랑, calendarId 를 안 줘도 되는데?; 귀찮네.
@@ -286,26 +336,30 @@ const API = (() => {
      * @param {String} calendar_id - Calendar ID of calendar to update event from
      * @return {Boolean} True if successful, false otherwise
      */
-    function updateGcalEvent(commonEvent, event_id, calendar_id) {
+    function updateGcalEvent(commonEvent) {
 
+        const {
+            gCalEId, gCalCalId, gCalSummary, location,description,
+            start, end, allDay
+        } = commonEvent
         try {
-            let calendar = CalendarApp.getCalendarById(calendar_id);
-            let calEvent = calendar.getEventById(event_id);
-            calEvent.setDescription(commonEvent.description);
-            calEvent.setTitle(commonEvent.gCalSummary);
-            calEvent.setLocation(commonEvent.location);
+            let calendar = CalendarApp.getCalendarById(gCalCalId);
+            let calEvent = calendar.getEventById(gCalEId);
+            calEvent.setDescription(description);
+            calEvent.setTitle(gCalSummary);
+            calEvent.setLocation(location);
 
-            if (commonEvent.end && commonEvent.allDay) {
+            if (end && allDay) {
                 // all day, multi day
-                let shifted_date = new Date(commonEvent.end);
+                let shifted_date = new Date(end);
                 shifted_date.setDate(shifted_date.getDate() + 2);
-                calEvent.setAllDayDates(new Date(commonEvent.start), shifted_date);
-            } else if (commonEvent.allDay) {
+                calEvent.setAllDayDates(new Date(start), shifted_date);
+            } else if (allDay) {
                 // all day, single day
-                calEvent.setAllDayDate(new Date(commonEvent.start));
+                calEvent.setAllDayDate(new Date(start));
             } else {
                 // not all day
-                calEvent.setTime(new Date(commonEvent.start), new Date(commonEvent.end) || null);
+                calEvent.setTime(new Date(start), new Date(end) || null);
             }
             return true;
         } catch (e) {
@@ -322,6 +376,7 @@ const API = (() => {
         },
         GCAL: {
             findGcalEventWithin,
+            createGcalEvent,
             getAllGcalCalendar,
             deleteGcalEvent,
             updateGcalEvent

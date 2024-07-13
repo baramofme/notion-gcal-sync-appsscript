@@ -73,16 +73,16 @@ let CommonEvent = (function () {
             ruleKeys.forEach(key => {
                 const {extFunc, convFunc} = this.rulesObj[key](utils)
                 obj[key] = convFunc(extFunc(notionDbPage))
-
             })
 
             // @Todo 이것도 별도의 rules 로 만들면 좋지 않을까?
             const calNames = Object.keys(this.calendarsObj)
             obj["calendarMatched"] = calNames.some(name => {
-                return obj.gCalName === name
-                    && obj.gCalCalId === this.calendarsObj[name].id
+                return obj.gCalCalName === name
+                    // 이름만 맞으면 생성이나 이동이 가능
+                    //&& obj.gCalCalId === this.calendarsObj[name].id
             })
-            obj["hasGcalInfo"] = !!obj.gCalEId && !!obj.gCalName
+            obj["hasGcalInfo"] = !!obj.gCalEId && !!obj.gCalCalName
 
             _commonEvent.set(this, obj)
             return this.proxy

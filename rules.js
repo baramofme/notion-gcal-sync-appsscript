@@ -12,6 +12,12 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.id,
             convFunc: (a) => a
         }),
+        // gCalSummary 와 내용이 같음
+        nTitle: (util) => ({
+            required: false,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
+            convFunc: (arr) => arr[0].content
+        }),
         // Gcal Info
         // @TODO 추상화. 공통 함수를 뽑아서, util 의 기본 값은 그냥 받아서 전달하는 거고, 함수가 들어오면 그걸 쓰도록 하는게 더 좋을듯.
         gCalCalId: (util) => ({
@@ -19,7 +25,7 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_ID_PROP_NOTION].select?.name,
             convFunc: (a) => a
         }),
-        gCalName: (util) => ({
+        gCalCalName: (util) => ({
             required: true,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
             convFunc: (a) => a
@@ -30,10 +36,15 @@ const RULES = (() => {
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_EVENT_ID_PROP_NOTION].rich_text,
             convFunc: util.flattenRichText
         }),
+        gCalWritable: (util) => ({
+            required: true,
+            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
+            convFunc: (gCalCalName)=> util.writable(CALENDAR_IDS, gCalCalName)
+        }),
         gCalSummary: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
-            convFunc: util.flattenRichText
+            convFunc: (arr) => arr[0].content
         }),
         description: (util) => ({
             required: false,
