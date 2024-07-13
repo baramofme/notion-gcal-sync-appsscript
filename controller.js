@@ -9,7 +9,8 @@ const CONTROLLER = (()=>{
 
     const response_data = API.NOTION.getCancelledTaggedNotionPages()
 
-    Logger.log(response_data);
+    //Logger.log(response_data.results[0].properties["이름"].title[0].plain_text);
+    //Logger.log(response_data.results.length);
     return
 
     const commonEvents = response_data.results.map(page => {
@@ -48,9 +49,23 @@ const CONTROLLER = (()=>{
     // Get 100 pages in order of when they were last edited.
 
     const response_data = API.NOTION.getFilteredNotionPages();
+
     const commonEvents = response_data.results.map(page => {
       return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
+    commonEvents.forEach(event => {
+      if(event.gCalSummary === '새로운 일정'){
+        const notionItem = response_data.results.find(result => result.id === event.nPageId)
+
+        //console.log(notionItem.properties)
+        console.log(UTIL.getBeforeVal(notionItem, "start", RULES))
+        console.log(UTIL.getBeforeVal(notionItem, "end", RULES))
+        console.log('start',event.start)
+        console.log('end',event.end)
+        console.log('hasDate',event.hasDate)
+      }
+    })
+
     const needUpdateEvents = commonEvents.filter(event => event.updatedRecently)
 
     let modified_eIds = new Set();
@@ -142,12 +157,9 @@ const CONTROLLER = (()=>{
     do {
       try {
         options.pageToken = pageToken;
-        console.log("syncFromGCal do-try")
-        console.log("options", options)
         //["가족"]: "family04088495301278171384@group.calendar.google.com",
         //["생일"]: "addressbook#contacts@group.v.calendar.google.com"
         events = Calendar.Events.list(CALENDAR_IDS[c_name], options);
-        console.log(events)
         // events1 = Calendar.Events.list("family04088495301278171384@group.calendar.google.com", options);
         // console.log(events1)
         // events2 = Calendar.Events.list("addressbook#contacts@group.v.calendar.google.com", options);
