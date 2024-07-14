@@ -197,7 +197,7 @@ const API = (() => {
         archive = false,
         multi = false
     ) {
-        console.log("updateNotionPage", page_id)
+        //console.log("updateNotionPage", page_id)
         const url = "https://api.notion.com/v1/pages/" + page_id;
         let payload = {};
         payload["properties"] = properties;
@@ -264,6 +264,7 @@ const API = (() => {
         let calendarId = CALENDAR_IDS[gCalCalName].id;
         let options = [gCalSummary, new Date(start)];
 
+
         if (end && allDay) {
             // add and shift
             let shifted_date = new Date(end);
@@ -284,6 +285,9 @@ const API = (() => {
         let newEventId = ""
 
         try {
+            // console.log("create(All)Event")
+            // console.log(start,end,allDay)
+            // console.log(...options)
             let new_event = allDay
                 ? calendar.createAllDayEvent(...options)
                 : calendar.createEvent(...options);

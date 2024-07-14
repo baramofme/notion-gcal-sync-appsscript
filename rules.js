@@ -38,8 +38,15 @@ const RULES = (() => {
         }),
         gCalWritable: (util) => ({
             required: true,
-            extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
+            // extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
+            extFunc: (notionDbPage) => {
+                if(notionDbPage.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+                    console.log(UTIL.getBeforeVal(notionDbPage, "start", RULES))
+                }
+                return notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name
+            },
             convFunc: (gCalCalName)=> util.writable(CALENDAR_IDS, gCalCalName)
+
         }),
         gCalSummary: (util) => ({
             required: false,

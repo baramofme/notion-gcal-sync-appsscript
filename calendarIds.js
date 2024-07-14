@@ -13,7 +13,7 @@ const CALENDAR_IDS = (() => {
     return {
         // @Todo 쓰기 권한이 있는 것만?
         //  대한민국의 휴일이 주루룩 동기화 대상이 되는 거 보고 화들짝 놀람
-        ...API.GCAL.getAllGcalCalendar(),
+        ...API.GCAL.getAllGcalCalendar(onlyIncludesList),
 
     }
 })()

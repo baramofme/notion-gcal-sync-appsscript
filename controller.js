@@ -51,17 +51,24 @@ const CONTROLLER = (()=>{
     const response_data = API.NOTION.getFilteredNotionPages();
 
     const commonEvents = response_data.results.map(page => {
-      return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
+      const converted = UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
+      if(page.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+        console.log(UTIL.getBeforeVal(page, "start", RULES))
+        console.log('start',converted.data.start)
+      }
+
+      return converted
     })
 
-    //commonEvents.forEach(event => {
+    commonEvents.forEach(event => {
+
       //console.log(event.data)
    //   const notionItem = response_data.results.find(result => result.id === event.nPageId)
    //   if(UTIL.getBeforeVal(notionItem, "start", RULES).start === '2024-06-08'){
    //     console.log(notionItem.properties["이름"].title[0])
    //   }
       //console.log('start',event.data)
-    //})
+    })
 
     const needUpdateEvents = commonEvents.filter(event => event.recentlyUpdated)
 
@@ -69,18 +76,17 @@ const CONTROLLER = (()=>{
 
     const syncedIds = SERVICE.syncableToGcal(response_data.results, splitList.syncableList, CALENDAR_IDS)
 
-    console.log(
-      "[+GC] Skipping pages because it no authorized to write to calendar.",
-        splitList.unSyncableList.noAuthorizedList.ids.join(", ")
-    );
-    console.log(
-        "[+GC] Skipping pages because it has no dates.",
-        splitList.unSyncableList.noDateList.ids.join(", ")
-    );
-    console.log(
-        "[+GC] Skipping pages  because it is not in the correct format and or is missing required information.",
-        splitList.unSyncableList.unknowReasonList.ids.join(", ")
-    );
+
+    function getIdsNames (ids) {
+      return ids.map(id => `[${id.gCalCalName}] ${id.nTitle} (${id.gCalEId})`)
+    }
+
+    console.log("[+GC] Skipping pages because it no authorized to write to calendar.")
+    console.log(getIdsNames(splitList.unSyncableList.noAuthorizedList.ids));
+    console.log("[+GC] Skipping pages because it has no dates.")
+    console.log(getIdsNames(splitList.unSyncableList.noDateList.ids));
+    console.log("[+GC] Skipping pages  because it is not in the correct format and or is missing required information.")
+    console.log(getIdsNames(splitList.unSyncableList.unknowReasonList.ids));
 
     return syncedIds
   }

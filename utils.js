@@ -32,12 +32,13 @@ const UTIL = (() => {
     }
 
     function writable(calendarList, gCalCalName) {
+        // console.log('달력목록', calendarList)
+        // console.log('달력이름', gCalCalName)
         if (!gCalCalName) return false
-        //console.log(calendarList)
-        //console.log(gCalCalId)
         const writableCalendar = Object.keys(calendarList).find(key =>
             calendarList[key].writable && calendarList[key].summary === gCalCalName
         )
+        // console.log('쓰기가능달력',writableCalendar)
         return !!writableCalendar
     }
 
@@ -49,77 +50,73 @@ const UTIL = (() => {
 
         const propObjEmpty = UTIL.isEmptyObject(datePropObj)
         // console.log("propObjEmpty", propObjEmpty)
-        if (propObjEmpty) return
+        if (propObjEmpty) return false
 
         const propObjHasNoTargetProp = !Object.hasOwn(datePropObj, startOrEndTypeStr)
         // console.log("propObjHasNoTargetProp", propObjHasNoTargetProp)
 
-        if (propObjHasNoTargetProp) hasDate = false
+        if (propObjHasNoTargetProp) return false
 
         const propOBjHasNoTargetValue = !datePropObj[startOrEndTypeStr]
 
-        if (propOBjHasNoTargetValue) hasDate = false
+        if (propOBjHasNoTargetValue) return false
 
         return hasDate
     }
 
-    // 후처리 - 노션 정보 추출 시 날짜
-    // https://developers.notion.com/changelog/dates-with-times-and-timezones-are-now-supported-on-database-date-filters
-    // "2021-10-15T12:00:00-07:00"
+    // date processing logic fits for below google API
+    // calendar.createAllDayEvent(title, date, [end, [options])])
+    // calendar.createEvent(title, startTime, endTime, [options]);
+    // https://developers.google.com/apps-script/reference/calendar/calendar?hl=ko#createAllDayEvent(String,Date,Object)
     function processDate(datePropObj, startOrEndTypeStr) {
-        // console.log('f processDate :', datePropObj, startOrEndTypeStr)
-        const hasDate = UTIL.hasDate(datePropObj, startOrEndTypeStr)
-        // console.log('f hasDate :', hasDate)
-        if (!hasDate) return
 
-        const isCurntTurnEnd = startOrEndTypeStr === "end"
+        // Find out start time has a time
+        // For Notion dates, both start and end dates may or may not have time, so
+        // All we need to know is whether the start has time or not.
+        let startHasValue = UTIL.hasDate(datePropObj, "start")
+        if(!startHasValue) return null
 
-        let curntProcValue = datePropObj[startOrEndTypeStr]
-        let startValue = UTIL.hasDate(datePropObj, "end")
-        let endValue = UTIL.hasDate(datePropObj, "end")
+        let startValue = datePropObj.start
+        let bothShouldHaveTime = UTIL.hasTime(startValue)
 
-        const noTime = UTIL.hasTime(datePropObj, startOrEndTypeStr)
-        const startHasTime = startValue && !noTime
+        let currentValue = null
+        // both doesn't have a time. It's aAllDayEvent case.
+        // in AllDayEvent case, end value is optional. nothing to do.
 
-        // time should be added
-        if (curntProcValue && noTime) curntProcValue += "T00:00:00"
-
-        // if start has time withoud end,
-        // make end with time +30m
-        if (isCurntTurnEnd && !endValue && startHasTime) {
-            let default_end = new Date(datePropObj.start);
-            default_end.setMinutes(default_end.getMinutes() + 30);
-            curntProcValue = default_end.toISOString();
+        // if not, It's Event. start and end should be existed and also has a time together.
+        if(bothShouldHaveTime) {
+            let endHasValue = UTIL.hasDate(datePropObj, "end")
+            if (!endHasValue) {
+                let default_end = new Date(datePropObj.start);
+                default_end.setMinutes(default_end.getMinutes() + 30);
+                currentValue = default_end.toISOString();
+            }
         }
 
-        return curntProcValue
+        return currentValue
 
     }
 
-    function hasTime(dates, startOrEndTypeStr) {
-        return dates[startOrEndTypeStr] && dates[startOrEndTypeStr].search(/([A-Z])/g) !== -1
+    function hasTime(dateString) {
+        // console.log("hasTime", dateString)
+        return dateString.search(/([A-Z])/g) !== -1
     }
 
     // Events that are marked as all day don't have a start or end time but rather mark the whole. Think of a holiday, a birthday,...
     // https://support.google.com/calendar/thread/188156659?hl=en&msgid=188159647
-    function allDay(dates) {
-        const noStartDate = !UTIL.hasDate(dates, 'start')
-        const noEndDate = !UTIL.hasDate(dates, 'end')
+    function allDay(datePropObj) {
 
-        if (noStartDate || (noStartDate && noEndDate)) return false
+        // Find out start time has a time
+        // For Notion dates, both start and end dates may or may not have time, so
+        // All we need to know is whether the start has time or not.
+        let startHasValue = UTIL.hasDate(datePropObj, "start")
+        if(!startHasValue) return null
 
-        const startHasNoTime = !UTIL.hasTime(dates, 'start')
-        const endHasNoTime = !UTIL.hasTime(dates, 'end')
+        let startValue = datePropObj.start
+        let bothShouldHaveTime = UTIL.hasTime(startValue)
 
-        let allDay = false
-
-        if (noEndDate) {
-            if (startHasNoTime) allDay = true
-        } else {
-            if (startHasNoTime && endHasNoTime) allDay = true
-        }
-
-        return allDay
+        // both doesn't have a time. It's a AllDayEvent case.
+        return !bothShouldHaveTime
     }
 
     function isEmptyObject(param) {
@@ -151,6 +148,7 @@ const UTIL = (() => {
             const gCalEId = commonEvent.gCalEId
             const gCalCalId = commonEvent.gCalCalId
             const gCalCalName = commonEvent.gCalCalName
+            const nTitle = commonEvent.nTitle
 
             const data = commonEvent.data
 
@@ -159,7 +157,8 @@ const UTIL = (() => {
                     syncableList.needUpdateList.data.push(data)
                     syncableList.needUpdateList.ids.push({
                         gCalEId: gCalEId,
-                        gCalCalName: gCalCalName
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
                     })
                 }
 
@@ -167,35 +166,51 @@ const UTIL = (() => {
                     syncableList.needRecreateList.data.push(data)
                     syncableList.needRecreateList.ids.push({
                         gCalEId: gCalEId,
-                        gCalCalName: gCalCalName
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
                     })
                 }
                 if (needCreate) {
                     syncableList.needCreateList.data.push(data)
                     syncableList.needCreateList.ids.push({
                         gCalEId: gCalEId,
-                        gCalCalName: gCalCalName
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
                     })
                 }
             } else {
-                if (!commonEvent.hasDate)
+
+                if (!commonEvent.hasDate && commonEvent.gCalWritable) {
+                    // console.log('권한있는데 날짜 없음')
+                    // console.log(commonEvent.data)
                     unSyncableList.noDateList.data.push(data)
-                unSyncableList.noDateList.ids.push({
-                    gCalEId: gCalEId,
-                    gCalCalName: gCalCalName
-                })
-                if (!commonEvent.writable)
+                    unSyncableList.noDateList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
+                    })
+                }
+                if (commonEvent.hasDate && !commonEvent.gCalWritable) {
+                    // console.log('날짜는 있는데 권한 없음')
+                    // console.log(commonEvent.data)
                     unSyncableList.noAuthorizedList.data.push(data)
-                unSyncableList.noAuthorizedList.ids.push({
-                    gCalEId: gCalEId,
-                    gCalCalName: gCalCalName
-                })
-                if (!commonEvent.hasDate && !commonEvent.writable)
+                    unSyncableList.noAuthorizedList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
+                    })
+                }
+                if (!commonEvent.hasDate && !commonEvent.gCalWritable) {
+                    // console.log('날짜도 없고 권한도 없음')
+                    // console.log(commonEvent.data)
                     unSyncableList.unknowReasonList.data.push(data)
-                unSyncableList.unknowReasonList.ids.push({
-                    gCalEId: gCalEId,
-                    gCalCalName: gCalCalName
-                })
+                    unSyncableList.unknowReasonList.ids.push({
+                        gCalEId: gCalEId,
+                        gCalCalName: gCalCalName,
+                        nTitle: nTitle
+                    })
+                }
+
             }
         })
 
