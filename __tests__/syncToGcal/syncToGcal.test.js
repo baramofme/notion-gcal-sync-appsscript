@@ -136,7 +136,7 @@ function runTests() {
         })
         const needUpdateEvents = commonEvents.filter(event => event.recentlyUpdated)
         const splitList = UTIL.splitEventFoUpdate(needUpdateEvents)
-        console.log(splitList)
+        // console.log(splitList)
     }, "")
 
 

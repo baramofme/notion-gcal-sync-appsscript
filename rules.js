@@ -16,7 +16,7 @@ const RULES = (() => {
         nTitle: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
-            convFunc: (arr) => arr[0].content
+            convFunc: (arr) => arr[0].plain_text
         }),
         // Gcal Info
         // @TODO 추상화. 공통 함수를 뽑아서, util 의 기본 값은 그냥 받아서 전달하는 거고, 함수가 들어오면 그걸 쓰도록 하는게 더 좋을듯.
@@ -44,7 +44,7 @@ const RULES = (() => {
         gCalSummary: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title,
-            convFunc: (arr) => arr[0].content
+            convFunc: (arr) => arr[0].plain_text
         }),
         description: (util) => ({
             required: false,

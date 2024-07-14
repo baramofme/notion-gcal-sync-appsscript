@@ -54,10 +54,12 @@ const CONTROLLER = (()=>{
       return UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
     })
 
-    //commonEvents.forEach(event => {/
+    //commonEvents.forEach(event => {
       //console.log(event.data)
-      //const notionItem = response_data.results.find(result => result.id === event.nPageId)
-      //console.log(UTIL.getBeforeVal(notionItem, "start", RULES))
+   //   const notionItem = response_data.results.find(result => result.id === event.nPageId)
+   //   if(UTIL.getBeforeVal(notionItem, "start", RULES).start === '2024-06-08'){
+   //     console.log(notionItem.properties["이름"].title[0])
+   //   }
       //console.log('start',event.data)
     //})
 
@@ -65,29 +67,31 @@ const CONTROLLER = (()=>{
 
     const splitList = UTIL.splitEventFoUpdate(needUpdateEvents)
 
-    SERVICE.syncableToGcal(response_data.results, splitList.syncableList, CALENDAR_IDS)
+    const syncedIds = SERVICE.syncableToGcal(response_data.results, splitList.syncableList, CALENDAR_IDS)
 
     console.log(
-      "[+GC] Skipping page %s because it no authorized to write to calendar.",
+      "[+GC] Skipping pages because it no authorized to write to calendar.",
         splitList.unSyncableList.noAuthorizedList.ids.join(", ")
     );
     console.log(
-        "[+GC] Skipping page %s because it has no dates.",
+        "[+GC] Skipping pages because it has no dates.",
         splitList.unSyncableList.noDateList.ids.join(", ")
     );
     console.log(
-        "[+GC] Skipping page %s because it is not in the correct format and or is missing required information.",
+        "[+GC] Skipping pages  because it is not in the correct format and or is missing required information.",
         splitList.unSyncableList.unknowReasonList.ids.join(", ")
     );
+
+    return syncedIds
   }
 
   /**
    * Syncs from google calendar to Notion
    * @param {String} c_name Calendar name
    * @param {Boolean} fullSync Whenever or not to discard the old page token
-   * @param {Set[String]} ignored_eIds Event IDs to not act on.
+   * @param {Set[String]} ignoredEIds Event IDs to not act on.
    */
-  function syncFromGCal(c_name, fullSync, ignored_eIds) {
+  function syncFromGCal(c_name, fullSync, ignoredEIds) {
     console.log("[+ND] Syncing from Google Calendar: %s", c_name);
     let properties = PropertiesService.getUserProperties();
     let options = {
@@ -95,13 +99,17 @@ const CONTROLLER = (()=>{
       singleEvents: true, // allow recurring events
     };
     let syncToken = properties.getProperty("syncToken");
+    // @Todo else 블록이 syncToke 이 없거나 fullSync 일때 실행됨.
+    // SyncToken  이 없을 때 options.timeMin 같은 게 설정되어봈자
+    // 무슨 소용일까. 오류가 날텐데 ;; 무조건 syncToken 이 있다고 가정하고
+    // 작성한 코드인데.. 여튼 이건 수정할까 말까.
     if (syncToken && !fullSync) {
       options.syncToken = syncToken;
     } else {
       // Sync events up to thirty days in the past.
-      options.timeMin = getRelativeDate(-CONFIG.RELATIVE_MIN_DAY, 0).toISOString();
+      options.timeMin = UTIL.getRelativeDate(-CONFIG.RELATIVE_MIN_DAY, 0).toISOString();
       // Sync events up to x days in the future.
-      options.timeMax = getRelativeDate(CONFIG.RELATIVE_MAX_DAY, 0).toISOString();
+      options.timeMax = UTIL.getRelativeDate(CONFIG.RELATIVE_MAX_DAY, 0).toISOString();
     }
     // Retrieve events one page at a time.
     let events;
@@ -109,35 +117,46 @@ const CONTROLLER = (()=>{
     do {
       try {
         options.pageToken = pageToken;
-        //["가족"]: "family04088495301278171384@group.calendar.google.com",
-        //["생일"]: "addressbook#contacts@group.v.calendar.google.com"
-        events = Calendar.Events.list(CALENDAR_IDS[c_name], options);
+        events = Calendar.Events.list(CALENDAR_IDS[c_name].id, options);
         // events1 = Calendar.Events.list("family04088495301278171384@group.calendar.google.com", options);
         // console.log(events1)
         // events2 = Calendar.Events.list("addressbook#contacts@group.v.calendar.google.com", options);
         // console.log(events2)
+        // console.log(CALENDAR_IDS[c_name], options)
       } catch (e) {
+        // @Todo 재시도 좋은데, 무한정 할 수는 없고 횟수가 필요해.
         // Check to see if the sync token was invalidated by the server;
         // if so, perform a full sync instead.
         if (
-            e.message === "Sync token is no longer valid, a full sync is required." || e.message === "API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required."
+            e.message === "Sync token is no longer valid, a full sync is required."
+            || e.message === "API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required."
         ) {
-          console.log("syncFromGCal - do -try-catch", c_name )
+          console.log("달력 %s 는 full sync 필요 합니다. 시작", c_name )
           properties.deleteProperty("syncToken");
-          syncFromGCal(c_name, true, ignored_eIds);
-          //syncFromGCal(CALENDAR_IDS[c_name], true, ignored_eIds);
+          syncFromGCal(c_name, true, ignoredEIds);
+
           return;
+        }else if(
+            e.message === "API call to calendar.events.list failed with error: Not Found"
+        ){
+          console.log("달력으로부터 이벤트 목록 조회 실패")
+          // console.log( c_name )
+          // console.log( options )
+          return
         } else {
           throw new Error(e.message);
         }
       }
+      // @Todo events 객체에 왜 직접 값을 할당하는 걸가? 실제로는 events.items 를 사용하잖아.
       events["c_name"] = c_name;
       if (events.items && events.items.length === 0) {
         console.log("[+ND] No events found. %s", c_name);
         return;
       }
       console.log("[+ND] Parsing new events. %s", c_name);
-      parseEvents(events, ignored_eIds);
+      // console.log("before pasrEvents")
+      // console.log(events[0])
+      UTIL.parseEvents(events, ignoredEIds);
       pageToken = events.nextPageToken;
     } while (pageToken);
     properties.setProperty("syncToken", events.nextSyncToken);
@@ -150,22 +169,22 @@ const CONTROLLER = (()=>{
    * -- Will discard the old page token and generate a new one. --
    * -- Will reset time min and time max to use the the current time as origin time --
    **/
-// function fullSync() {
-//   getNotionCredentialInfo();
-//   console.log(
-//     "Preforming full sync. Page token, time min, and time max will be reset."
-//   );
-//   for (var c_name of Object.keys(CALENDAR_IDS)) {
-//     syncFromGCal(c_name, true, new Set());
-//   }
-// }
+function fullSync() {
+  // getNotionCredentialInfo();
+  console.log(
+    "Preforming full sync. Page token, time min, and time max will be reset."
+  );
+  for (var c_name of Object.keys(CALENDAR_IDS)) {
+    syncFromGCal(c_name, true, new Set());
+  }
+}
 
 
   return {
     processCancelledEvents,
     syncToGCal,
     syncFromGCal,
-    //fullSync,
+    fullSync,
   }
 })()
 

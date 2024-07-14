@@ -32,7 +32,7 @@ const UTIL = (() => {
     }
 
     function writable(calendarList, gCalCalName) {
-        if(!gCalCalName) return false
+        if (!gCalCalName) return false
         //console.log(calendarList)
         //console.log(gCalCalId)
         const writableCalendar = Object.keys(calendarList).find(key =>
@@ -180,19 +180,19 @@ const UTIL = (() => {
             } else {
                 if (!commonEvent.hasDate)
                     unSyncableList.noDateList.data.push(data)
-                    unSyncableList.noDateList.ids.push({
+                unSyncableList.noDateList.ids.push({
                     gCalEId: gCalEId,
                     gCalCalName: gCalCalName
                 })
                 if (!commonEvent.writable)
                     unSyncableList.noAuthorizedList.data.push(data)
-                    unSyncableList.noAuthorizedList.ids.push({
+                unSyncableList.noAuthorizedList.ids.push({
                     gCalEId: gCalEId,
                     gCalCalName: gCalCalName
                 })
                 if (!commonEvent.hasDate && !commonEvent.writable)
                     unSyncableList.unknowReasonList.data.push(data)
-                    unSyncableList.unknowReasonList.ids.push({
+                unSyncableList.unknowReasonList.ids.push({
                     gCalEId: gCalEId,
                     gCalCalName: gCalCalName
                 })
@@ -205,108 +205,16 @@ const UTIL = (() => {
         }
     }
 
-    // function getRelativeDate(daysOffset, hour) {
-    //   let date = new Date();
-    //   date.setDate(date.getDate() + daysOffset);
-    //   date.setHours(hour);
-    //   date.setMinutes(0);
-    //   date.setSeconds(0);
-    //   date.setMilliseconds(0);
-    //   return date;
-    // }
+    function getRelativeDate(daysOffset, hour) {
+        let date = new Date();
+        date.setDate(date.getDate() + daysOffset);
+        date.setHours(hour);
+        date.setMinutes(0);
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        return date;
+    }
 
-    /**
-     * Return notion JSON property object based on event data
-     * @param {CalendarEvent} event modified GCal event object
-     * @param {String[]} existing_tags - existing tags to add to event
-     * @returns {Object} notion property object
-     */
-// function convertToNotionProperty(event, existing_tags = []) {
-//   let properties = getBaseNotionProperties(event.id, event.c_name);
-
-//   properties[CONFIG.DESCRIPTION_PROP_NOTION] = {
-//     type: "rich_text",
-//     rich_text: [
-//       {
-//         text: {
-//           content: event.description || "",
-//         },
-//       },
-//     ],
-//   };
-
-//   properties[CONFIG.LOCATION_PROP_NOTION] = {
-//     type: "rich_text",
-//     rich_text: [
-//       {
-//         text: {
-//           content: event.location || "",
-//         },
-//       },
-//     ],
-//   };
-
-//   if (event.start) {
-//     let start_time;
-//     let end_time;
-
-//     if (event.start.date) {
-//       // All-day event.
-//       start_time = new Date(event.start.date);
-//       end_time = new Date(event.end.date);
-
-//       // Offset timezone
-//       start_time.setTime(
-//         start_time.getTime() + start_time.getTimezoneOffset() * 60 * 1000
-//       );
-//       end_time.setTime(
-//         end_time.getTime() + end_time.getTimezoneOffset() * 60 * 1000
-//       );
-
-//       // Offset by 1 day to get end date.
-//       end_time.setDate(end_time.getDate() - 1);
-
-//       start_time = start_time.toISOString().split("T")[0];
-//       end_time = end_time.toISOString().split("T")[0];
-
-//       end_time = start_time == end_time ? null : end_time;
-//     } else {
-//       // Events that don't last all day; they have defined start times.
-//       start_time = event.start.dateTime;
-//       end_time = event.end.dateTime;
-//     }
-
-//     properties[CONFIG.DATE_PROP_NOTION] = {
-//       type: "date",
-//       date: {
-//         start: start_time,
-//         end: end_time,
-//       },
-//     };
-
-//     properties[NAME_NOTION] = {
-//       type: "title",
-//       title: [
-//         {
-//           type: "text",
-//           text: {
-//             content: event.summary || "",
-//           },
-//         },
-//       ],
-//     };
-//   }
-
-//   if (event.status === "cancelled") {
-//     properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION] = { multi_select: existing_tags };
-
-//     properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION].multi_select.push({
-//       name: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION,
-//     });
-//   }
-
-//   return properties;
-// }
 
     /**
      * Return base notion JSON property object including generation time
@@ -314,100 +222,101 @@ const UTIL = (() => {
      * @param {String} calendar_name - calendar key name
      * @returns {Object} - base notion property object
      *  */
-// function getBaseNotionProperties(event_id, calendar_name) {
-//   return {
-//     [CONFIG.LAST_SYNC_PROP_NOTION]: {
-//       type: "date",
-//       date: {
-//         start: new Date().toISOString(),
-//       },
-//     },
-//     [CONFIG.CALENDAR_EVENT_ID_PROP_NOTION]: {
-//       type: "rich_text",
-//       rich_text: [
-//         {
-//           text: {
-//             content: event_id, //use ICal uid?
-//           },
-//         },
-//       ],
-//     },
-//     [CONFIG.CALENDAR_ID_PROP_NOTION]: {
-//       select: {
-//         name: CALENDAR_IDS[calendar_name],
-//       },
-//     },
-//     [CALENDAR_CONFIG.NAME_PROP_NOTION]: {
-//       select: {
-//         name: calendar_name,
-//       },
-//     },
-//   };
-// }
+    //@Todo 이거 class 로 만들어도 되지 않을까?
+    function getBaseNotionProperties(event_id, calendar_name) {
+        // console.log('getBaseNotionProperties', calendar_name)
 
+        //@Todo 시간이 늦게 찍히는 문제인 줄 알았는데 아니었음.. 근데 그냥 두리골... 나중에 치우자
+        const now = new Date()
+        now.setMinutes(now.getMinutes())
 
-    /**
-     * 속성이 노션에 유효한 지 확인
-     *
-     * @param {*} properties Properties object to check
-     * @returns false if invalid, true if valid
-     */
-// function checkNotionProperty(properties) {
-//   // Check if description is too long
-//   if (properties[CONFIG.DESCRIPTION_PROP_NOTION].rich_text[0].text.content.length > 2000) {
-//     console.log("Event description is too long.");
-//     return false;
-//   }
+        return {
+            // 우선순위 추가해서 생성하도록 함
+            [CONFIG.EXT_FILTER_PROP_NOTION]: {
+                select: {
+                    name: CONFIG.EXT_FILTER_VALUE_NOTION,
+                },
+            },
 
-//   return true;
-// }
+            // @todo fetch 직전에 1분 추가해서 보내는 게 좋을듯.
+            // 여기서 생서안 시점과 실제 동기화가 처리되는 시점이 달라서
+            // 계속 최근에 갱신된 항목으로, 무한 동기화됨..
+            [CONFIG.LAST_SYNC_PROP_NOTION]: {
+                type: "date",
+                date: {
+                    // start: new Date().toISOString(),
+                    start: now.toISOString(),
+                },
+            },
+            [CONFIG.CALENDAR_EVENT_ID_PROP_NOTION]: {
+                type: "rich_text",
+                rich_text: [
+                    {
+                        text: {
+                            content: event_id, //use ICal uid?
+                        },
+                    },
+                ],
+            },
+            [CONFIG.CALENDAR_ID_PROP_NOTION]: {
+                select: {
+                    name: CALENDAR_IDS[calendar_name].id,
+                },
+            },
+            [CONFIG.CALENDAR_NAME_PROP_NOTION]: {
+                select: {
+                    name: calendar_name,
+                },
+            },
+        };
+    }
 
 
     /**
      * Error thrown when an event is invalid and cannot be
      * pushed to either Google Calendar or Notion.
      */
-// class InvalidEventError extends Error {
-//   constructor(message) {
-//     super(message);
-//     this.name = "InvalidEventError";
-//   }
-// }
+    class InvalidEventError extends Error {
+        constructor(message) {
+            super(message);
+            this.name = "InvalidEventError";
+        }
+    }
 
     /**
      * Get notion page ID of corresponding gCal event. Returns null if no page found.
      * @param {CalendarEvent} event - Modiffied gCal event object
      */
-// function getPageId(event) {
-//   const url = NOTION_CREDENTIAL_OBJ.databaseUrl();
-//   const payload = {
-//     filter: {
-//       and: [
-//         { property: CONFIG.CALENDAR_EVENT_ID_PROP_NOTION, rich_text: { equals: event.id } },
-//         {
-//           property: CONFIG.SYNC_OPT_TAG_PROP_NOTION,
-//           multi_select: {
-//             does_not_contain: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION,
-//           },
-//         },
-//       ],
-//     },
-//   };
+    function getPageId(event) {
+        const url = NOTION_CREDENTIAL_OBJ.databaseUrl;
+        const payload = {
+            filter: {
+                and: [
+                    {property: CONFIG.CALENDAR_EVENT_ID_PROP_NOTION, rich_text: {equals: event.id}},
+                    {
+                        property: CONFIG.SYNC_OPT_TAG_PROP_NOTION,
+                        multi_select: {
+                            does_not_contain: CONFIG.SYNC_OPT_IGNORE_VALUE_NOTION,
+                        },
+                    },
+                ],
+            },
+        };
 
-//   const response_data = notionFetch(url, payload, "POST");
+        const response_data = API.NOTION.notionFetch(url, payload, "POST");
 
-//   if (response_data.results.length > 0) {
-//     if (response_data.results.length > 1) {
-//       console.log(
-//         "Found multiple entries with event id %s. This should not happen. Only processing index zero entry.",
-//         event.id
-//       );
-//     }
+        if (response_data.results.length > 0) {
+            if (response_data.results.length > 1) {
+                console.log(
+                    "Found multiple entries with event id %s. This should not happen. Only processing index zero entry.",
+                    event.id
+                );
+            }
 
-//     return response_data.results[0].id;
-//   }
-//   return null;
-// }
+            return response_data.results[0].id;
+        }
+        return null;
+    }
 
     /**
      * Sync to google calendar from Notion
@@ -419,109 +328,111 @@ const UTIL = (() => {
      * @param {CalendarEvent[]} events Google calendar events
      * @param {Set[String]} ignored_eIds Event IDs to not act on.
      */
-// function parseEvents(events, ignored_eIds) {
-//   let requests = [];
-//   for (let i = 0; i < events.items.length; i++) {
-//     let event = events.items[i];
-//     event["c_name"] = events["c_name"];
-//     if (ignored_eIds.has(event.id)) {
-//       console.log("[+ND] Ignoring event %s", event.id);
-//       continue;
-//     }
-//     if (event.status === "cancelled") {
-//       console.log("[+ND] Event %s was cancelled.", event.id);
-//       // Remove the event from the database
-//       handleEventCancelled(event);
-//       continue;
-//     }
-//     let start;
-//     let end;
+    function parseEvents(events, ignored_eIds) {
+        let requests = [];
+        for (let i = 0; i < events.items.length; i++) {
+            let event = events.items[i];
+            event["c_name"] = events["c_name"];
+            if (ignored_eIds.has(event.id)) {
+                console.log("[+ND] Ignoring event %s", event.id);
+                continue;
+            }
+            if (event.status === "cancelled") {
+                console.log("[+ND] Event %s was cancelled.", event.id);
+                // Remove the event from the database
+                UTIL.handleEventCancelled(event);
+                continue;
+            }
+            let start;
+            let end;
 
-//     if (event.start.date) {
-//       // All-day event.
-//       start = new Date(event.start.date);
-//       end = new Date(event.end.date);
-//       console.log(
-//         "[+ND] Event found %s %s (%s -- %s)",
-//         event.id,
-//         event.summary,
-//         start.toLocaleDateString(),
-//         end.toLocaleDateString()
-//       );
-//     } else {
-//       // Events that don't last all day; they have defined start times.
-//       start = event.start.dateTime;
-//       end = event.end.dateTime;
-//       console.log(
-//         "[+ND] Event found %s %s (%s)",
-//         event.id,
-//         event.summary,
-//         start.toLocaleString()
-//       );
-//     }
-//     let page_response = getPageFromEvent(event);
+            if (event.start.date) {
+                // All-day event.
+                start = new Date(event.start.date);
+                end = new Date(event.end.date);
+                console.log(
+                    "[+ND] Event found %s %s (%s -- %s)",
+                    event.id,
+                    event.summary,
+                    start.toLocaleDateString(),
+                    end.toLocaleDateString()
+                );
+            } else {
+                // Events that don't last all day; they have defined start times.
+                start = event.start.dateTime;
+                end = event.end.dateTime;
+                console.log(
+                    "[+ND] Event found %s %s (%s)",
+                    event.id,
+                    event.summary,
+                    start.toLocaleString()
+                );
+            }
+            let page_response = SERVICE.getPageFromEvent(event);
 
-//     if (page_response) {
-//       console.log(
-//         "[+ND] Event %s database page %s exists already. Attempting update.",
-//         event.id,
-//         page_response.id
-//       );
-//       let tags = page_response.properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION].multi_select;
-//       requests.push(
-//         updateDatabaseEntry(event, page_response.id, tags || [])
-//       );
+            if (page_response) {
+                console.log(
+                    "[+ND] Event %s database page %s exists already. Attempting update.",
+                    event.id,
+                    page_response.id
+                );
+                let tags = page_response.properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION].multi_select;
+                // console.log("page_response.id",page_response)
+                requests.push(
+                    SERVICE.updateDatabaseEntry(event, page_response.id, tags || [])
+                );
 
-//       continue;
-//     }
-//     console.log("[+ND] Creating database entry.");
+                continue;
+            }
+            console.log("[+ND] Creating database entry.");
 
-//     try {
-//       requests.push(createDatabaseEntry(event));
-//     } catch (err) {
-//       if ((err instanceof InvalidEventError) && CONFIG.SKIP_BAD_EVENTS) {
-//         console.log(
-//           "[+ND] Skipping creation of event %s due to invalid properties.",
-//           event.id
-//         );
+            try {
+                requests.push(SERVICE.createDatabaseEntry(event));
+            } catch (err) {
+                if ((err instanceof UTIL.InvalidEventError) && CONFIG.SKIP_BAD_EVENTS) {
+                    console.log(
+                        "[+ND] Skipping creation of event %s due to invalid properties.",
+                        event.id
+                    );
+                    // console.log(event)
 
-//         continue;
-//       }
+                    continue;
+                }
 
-//       throw err;
-//     }
-//   }
-//   console.log("[+ND] Finished parsing page. Sending batch request.");
+                throw err;
+            }
+        }
+        console.log("[+ND] Finished parsing page. Sending batch request.");
 
-//   const responses = UrlFetchApp.fetchAll(requests);
+        const responses = UrlFetchApp.fetchAll(requests);
 
-//   for (let i = 0; i < responses.length; i++) {
-//     let response = responses[i];
-//     if (response.getResponseCode() === 401) {
-//       throw new Error("[+ND] Notion token is invalid.");
-//     } else if (response.getResponseCode() === 404) {
-//       throw new Error("[+ND] Notion page not found.");
-//     } else if (response.getResponseCode() === 403) {
-//       throw new Error("[+ND] Notion page is private.");
-//     } else if (response.getResponseCode() !== 200) {
-//       throw new Error(response.getContentText());
-//     }
-//   }
-// }
+        for (let i = 0; i < responses.length; i++) {
+            let response = responses[i];
+            if (response.getResponseCode() === 401) {
+                throw new Error("[+ND] Notion token is invalid.");
+            } else if (response.getResponseCode() === 404) {
+                throw new Error("[+ND] Notion page not found.");
+            } else if (response.getResponseCode() === 403) {
+                throw new Error("[+ND] Notion page is private.");
+            } else if (response.getResponseCode() !== 200) {
+                throw new Error(response.getContentText());
+            }
+        }
+    }
 
     /**
      * Deals with event cancelled from gCal side
      * @param {CalendarEvent} event - Modiffied gCal event object
      */
-// function handleEventCancelled(event) {
-//   const page_id = getPageId(event);
+    function handleEventCancelled(event) {
+        const page_id = getPageId(event);
 
-//   if (page_id) {
-//     updateDatabaseEntry(event, page_id, [], false);
-//   } else {
-//     console.log("Event %s not found in Notion database. Skipping.", event.id);
-//   }
-// }
+        if (page_id) {
+            API.NOTION.updateDatabaseEntry(event, page_id, [], false);
+        } else {
+            console.log("Event %s not found in Notion database. Skipping.", event.id);
+        }
+    }
 
     function extNessasaryPproperly(event) {
         return {
@@ -547,6 +458,117 @@ const UTIL = (() => {
         }
     }
 
+    /**
+     * Return notion JSON property object based on event data
+     * @param {CalendarEvent} event modified GCal event object
+     * @param {String[]} existing_tags - existing tags to add to event
+     * @returns {Object} notion property object
+     */
+    function convertToNotionProperty(event, existing_tags = []) {
+        // console.log("convertToNotionProperty",event)
+        let properties = getBaseNotionProperties(event.id, event.c_name);
+
+        properties[CONFIG.DESCRIPTION_PROP_NOTION] = {
+            type: "rich_text",
+            rich_text: [
+                {
+                    text: {
+                        content: event.description || "",
+                    },
+                },
+            ],
+        };
+
+        properties[CONFIG.LOCATION_PROP_NOTION] = {
+            type: "rich_text",
+            rich_text: [
+                {
+                    text: {
+                        content: event.location || "",
+                    },
+                },
+            ],
+        };
+
+        if (event.start) {
+            let start_time;
+            let end_time;
+
+            if (event.start.date) {
+                // All-day event.
+                start_time = new Date(event.start.date);
+                end_time = new Date(event.end.date);
+
+                // Offset timezone
+                start_time.setTime(
+                    start_time.getTime() + start_time.getTimezoneOffset() * 60 * 1000
+                );
+                end_time.setTime(
+                    end_time.getTime() + end_time.getTimezoneOffset() * 60 * 1000
+                );
+
+                // Offset by 1 day to get end date.
+                end_time.setDate(end_time.getDate() - 1);
+
+                start_time = start_time.toISOString().split("T")[0];
+                end_time = end_time.toISOString().split("T")[0];
+
+                end_time = start_time == end_time ? null : end_time;
+            } else {
+                // Events that don't last all day; they have defined start times.
+                start_time = event.start.dateTime;
+                end_time = event.end.dateTime;
+            }
+
+            properties[CONFIG.DATE_PROP_NOTION] = {
+                type: "date",
+                date: {
+                    start: start_time,
+                    end: end_time,
+                },
+            };
+
+            properties[CONFIG.NAME_PROP_NOTION] = {
+                type: "title",
+                title: [
+                    {
+                        type: "text",
+                        text: {
+                            content: event.summary || "",
+                        },
+                    },
+                ],
+            };
+        }
+
+        if (event.status === "cancelled") {
+            properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION] = {multi_select: existing_tags};
+
+            properties[CONFIG.SYNC_OPT_TAG_PROP_NOTION].multi_select.push({
+                name: CONFIG.SYNC_OPT_CANCELLED_VALUE_NOTION,
+            });
+        }
+
+        return properties;
+    }
+
+
+    /**
+     * 속성이 노션에 유효한 지 확인
+     *
+     * @param {*} properties Properties object to check
+     * @returns false if invalid, true if valid
+     */
+    function checkNotionProperty(properties) {
+        // Check if description is too long
+        if (properties[CONFIG.DESCRIPTION_PROP_NOTION].rich_text[0].text.content.length > 2000) {
+            console.log("Event description is too long.");
+            return false;
+        }
+
+        return true;
+    }
+
     return {
         getBeforeVal,
         isEmptyObject, // 안 쓰이는 거 같음
@@ -558,7 +580,15 @@ const UTIL = (() => {
         writable,
         convertPageToCommonEvent,
         splitEventFoUpdate,
-        extNessasaryPproperly
+        extNessasaryPproperly,
+        getBaseNotionProperties,
+        getRelativeDate,
+        parseEvents,
+        handleEventCancelled,
+        //@Todo 이거는 타입인데? 다른 곳으로 빼야 하는 거 아니야?
+        InvalidEventError,
+        convertToNotionProperty,
+        checkNotionProperty
     }
 })()
 

@@ -4,8 +4,8 @@ if (typeof require !== 'undefined') {
         CalendarList: {
             list: () => {
                 return {
-                    items:
-                        [{
+                    items: [
+                        {
                             colorId: '7',
                             backgroundColor: '#42d692',
                             conferenceProperties: [Object],
@@ -21,65 +21,65 @@ if (typeof require !== 'undefined') {
                             kind: 'calendar#calendarListEntry',
                             selected: true
                         },
-                            {
-                                timeZone: 'America/Los_Angeles',
-                                accessRole: 'owner',
-                                foregroundColor: '#000000',
-                                primary: true,
-                                backgroundColor: '#9fe1e7',
-                                id: 'main@gmail.com',
-                                selected: true,
-                                kind: 'calendar#calendarListEntry',
-                                defaultReminders: [],
-                                conferenceProperties: [Object],
-                                etag: '""',
-                                summary: 'Personal',
-                                colorId: '14'
-                            },
-                            {
-                                defaultReminders: [],
-                                summary: 'Time table',
-                                kind: 'calendar#calendarListEntry',
-                                accessRole: 'owner',
-                                id: 'time@group.calendar.google.com',
-                                colorId: '12',
-                                backgroundColor: '#fad165',
-                                foregroundColor: '#000000',
-                                timeZone: 'America/Los_Angeles',
-                                etag: '""',
-                                description: 'Time table',
-                                conferenceProperties: [Object]
-                            },
-                            {
-                                summaryOverride: 'Family',
-                                summary: 'Family',
-                                accessRole: 'writer',
-                                defaultReminders: [],
-                                timeZone: 'UTC',
-                                id: 'family@group.calendar.google.com',
-                                foregroundColor: '#000000',
-                                conferenceProperties: [Object],
-                                colorId: '24',
-                                etag: '""',
-                                backgroundColor: '#a47ae2',
-                                kind: 'calendar#calendarListEntry',
-                                selected: true
-                            },
-                            {
-                                description: 'Google person birthday etc',
-                                colorId: '13',
-                                foregroundColor: '#000000',
-                                backgroundColor: '#92e1c0',
-                                id: 'addressbook#contacts@group.v.calendar.google.com',
-                                accessRole: 'reader',
-                                etag: '""',
-                                kind: 'calendar#calendarListEntry',
-                                timeZone: 'America/Los_Angeles',
-                                defaultReminders: [],
-                                summaryOverride: 'birthday',
-                                summary: 'birthday',
-                                conferenceProperties: [Object]
-                            }],
+                        {
+                            timeZone: 'America/Los_Angeles',
+                            accessRole: 'owner',
+                            foregroundColor: '#000000',
+                            primary: true,
+                            backgroundColor: '#9fe1e7',
+                            id: 'main@gmail.com',
+                            selected: true,
+                            kind: 'calendar#calendarListEntry',
+                            defaultReminders: [],
+                            conferenceProperties: [Object],
+                            etag: '""',
+                            summary: 'Personal',
+                            colorId: '14'
+                        },
+                        {
+                            defaultReminders: [],
+                            summary: 'Time table',
+                            kind: 'calendar#calendarListEntry',
+                            accessRole: 'owner',
+                            id: 'time@group.calendar.google.com',
+                            colorId: '12',
+                            backgroundColor: '#fad165',
+                            foregroundColor: '#000000',
+                            timeZone: 'America/Los_Angeles',
+                            etag: '""',
+                            description: 'Time table',
+                            conferenceProperties: [Object]
+                        },
+                        {
+                            summaryOverride: 'Family',
+                            summary: 'Family',
+                            accessRole: 'writer',
+                            defaultReminders: [],
+                            timeZone: 'UTC',
+                            id: 'family@group.calendar.google.com',
+                            foregroundColor: '#000000',
+                            conferenceProperties: [Object],
+                            colorId: '24',
+                            etag: '""',
+                            backgroundColor: '#a47ae2',
+                            kind: 'calendar#calendarListEntry',
+                            selected: true
+                        },
+                        {
+                            description: 'Google person birthday etc',
+                            colorId: '13',
+                            foregroundColor: '#000000',
+                            backgroundColor: '#92e1c0',
+                            id: 'addressbook#contacts@group.v.calendar.google.com',
+                            accessRole: 'reader',
+                            etag: '""',
+                            kind: 'calendar#calendarListEntry',
+                            timeZone: 'America/Los_Angeles',
+                            defaultReminders: [],
+                            summaryOverride: 'birthday',
+                            summary: 'birthday',
+                            conferenceProperties: [Object]
+                        }],
                     kind: 'calendar#calendarList',
                     nextSyncToken: '',
                     etag: '""'
@@ -197,6 +197,7 @@ const API = (() => {
         archive = false,
         multi = false
     ) {
+        console.log("updateNotionPage", page_id)
         const url = "https://api.notion.com/v1/pages/" + page_id;
         let payload = {};
         payload["properties"] = properties;
@@ -225,11 +226,14 @@ const API = (() => {
      * ========== 구글용 ==============
      */
 
-    function getAllGcalCalendar() {
-        var calendarList = Calendar.CalendarList.list();
+    function getAllGcalCalendar(onlyIncludesList = []) {
+
+        let calendarList = Calendar.CalendarList.list().items;
         var calendars = {};
 
-        calendarList.items.forEach(calendar => {
+        for(const calendar of calendarList) {
+
+            if(!onlyIncludesList.includes(calendar.summary)) continue
 
             const writable = calendar.accessRole === 'owner' || calendar.accessRole === 'writer'
 
@@ -239,7 +243,7 @@ const API = (() => {
                 writable,
                 description: calendar.description
             }
-        })
+        }
 
         return calendars;
     }
@@ -247,18 +251,17 @@ const API = (() => {
     /** Create event to Google calendar. Return event ID if successful
      * @param {Object} page - Page object from Notion database
      * @param {Object} commonEvent - Event object for gCal
-     * @param {String} calendarName - name of calendar to push event to
      * @return {String} - Event ID if successful, false otherwise
      */
 
-    function createGcalEvent(page, commonEvent, calendarName) {
+    function createGcalEvent(commonEvent) {
 
         const {
-            gCalEId, gCalCalId, gCalSummary, location,description,
+            nPageId, gCalCalName, gCalEId, gCalCalId, gCalSummary, location, description,
             start, end, allDay
         } = commonEvent
 
-        let calendar_id = CALENDAR_IDS[calendarName];
+        let calendarId = CALENDAR_IDS[gCalCalName].id;
         let options = [gCalSummary, new Date(start)];
 
         if (end && allDay) {
@@ -272,24 +275,40 @@ const API = (() => {
 
         options.push({description: description, location: location});
 
-        let calendar = CalendarApp.getCalendarById(calendar_id);
+        let calendar = CalendarApp.getCalendarById(calendarId);
+
+        // console.log('calendar options', options)
+        // console.log('calendar id', calendarId)
+        // console.log('calendar gCalCalName', gCalCalName)
+
+        let newEventId = ""
+
         try {
             let new_event = allDay
                 ? calendar.createAllDayEvent(...options)
                 : calendar.createEvent(...options);
-            new_event_id = new_event.getId().split("@")[0];
+            newEventId = new_event.getId().split("@")[0];
         } catch (e) {
             console.log("Failed to push new event to GCal. %s", e);
             return false;
         }
 
-        if (!new_event_id) {
+        if (!newEventId) {
             console.log("Event %s not created in gCal.", gCalSummary);
             return false;
         }
-        let properties = getBaseNotionProperties(new_event_id, calendarName);
-        API.NOTION.updateNotionPage(properties, page.id);
-        return new_event_id;
+
+        // @Todo 아래를 별도로 분리하는 거 어떨까?
+        // 리턴을 하면, 호출한 곳에서 아래 내용을 실핸하는 거지. 함수 이름하고 상관 없는 일을 학 있어 지금
+        // @Todo 이해가 필요.
+        // 변경할 props 에 해당하는 구조를 마들고 그것만 노션에 patch
+        // 커먼객체로 변환 -> getNotionEventWith(속성명) 이렇게 가져온 다음에
+        // API 는 그대로 이용하면 어떨까?
+        // API 호출도 객체에서 해버리면... 어떨까?
+        // 어차피 여기서만 쓰고 버린다는 생각을 하면 여기서 끝인 게 맞기도 한데.
+        let properties = UTIL.getBaseNotionProperties(newEventId, gCalCalName);
+        API.NOTION.updateNotionPage(properties, nPageId);
+        return newEventId;
     }
 
     /** Delete event from Google calendar
@@ -303,7 +322,7 @@ const API = (() => {
 
         if (!calendarId) {
             const beforeGCalEventList = API.GCAL.findGcalEventWithin(eventId, calendarList)
-            console.log("Before delete: ", beforeGCalEventList)
+            // console.log("Before delete: ", beforeGCalEventList)
         }
         try {
             let calendar = CalendarApp.getCalendarById(calendarId);
@@ -330,6 +349,7 @@ const API = (() => {
     }
 
     // @Todo eventId 랑, calendarId 를 안 줘도 되는데?; 귀찮네.
+    // @Todo 나머지는 id 를 반환하는데, 예만 Boolean 을 반환해? ;;
     /** Update Google calendar event
      * @param {CommonEvent} commonEvent - Modified event object for gCal
      * @param {String} page_id - Page ID of Notion page to update
@@ -339,7 +359,7 @@ const API = (() => {
     function updateGcalEvent(commonEvent) {
 
         const {
-            gCalEId, gCalCalId, gCalSummary, location,description,
+            gCalEId, gCalCalId, gCalSummary, location, description,
             start, end, allDay
         } = commonEvent
         try {
@@ -373,6 +393,8 @@ const API = (() => {
             getCancelledTaggedNotionPages,
             getFilteredNotionPages,
             updateNotionPage,
+            // @ 어떤 거는 직접 호출하고, 어떤 거는 한번 거쳐서 호출하고.. 중구 난방이여
+            notionFetch
         },
         GCAL: {
             findGcalEventWithin,

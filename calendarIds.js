@@ -4,20 +4,17 @@ const CALENDAR_IDS = {
 };
 */
 if (typeof require !== 'undefined') {
-  MockData = require ('./__tests__/min/MockData.js');
-  API = require ('./api.js');
+    MockData = require('./__tests__/min/MockData.js');
+    API = require('./api.js');
 }
 
-const CALENDAR_IDS = (()=> {
-  return {
-    ...API.GCAL.getAllGcalCalendar()
-    // Add calendars here.
-    // The key (string before ':') is what you name the calendar.
-    // The value (string after ':') is the calendar ID.
-    // e.g. ["My calendar name"]: "abcdefg1234@group.calendar.google.com",
-    //["개인"]: "baram204@gmail.com",
-    //["가족"]: "family04088495301278171384@group.calendar.google.com",
-    //["생일"]: "addressbook#contacts@group.v.calendar.google.com"
+const CALENDAR_IDS = (() => {
+    const onlyIncludesList = ["개인","생일","가족"];
+    return {
+        // @Todo 쓰기 권한이 있는 것만?
+        //  대한민국의 휴일이 주루룩 동기화 대상이 되는 거 보고 화들짝 놀람
+        ...API.GCAL.getAllGcalCalendar(),
+
     }
 })()
 
