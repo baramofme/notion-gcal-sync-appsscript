@@ -64,32 +64,86 @@ const UTIL = (() => {
         return hasDate
     }
 
+    // In don't know what to name on this.. function.
+    function getLocaleISOTime(inputDate, minutesToAdd = 0) {
+
+        // Too much. this look more elegant, but i'm not using till I met It's required.
+        /*
+        const tzname = "America/Detroit";
+        const longOffsetFormatter = new Intl.DateTimeFormat("en-US", {timeZone: tzname ,timeZoneName: "longOffset"});
+        const longOffsetString = longOffsetFormatter.format(new Date("2013-02-28T19:00:00.000")); // '2/28/2013, GMT-05:00'
+
+        // longOffsetString.split('GMT')[1] will give us '-05:00'
+        const gmtOffset = longOffsetString.split('GMT')[1];
+         */
+        console.log('inputDate',inputDate)
+        const copyOfInputData = inputDate
+        const dateWithoutTimezone = inputDate.slice(0, -6) + "Z"
+        const timeZoneStr = copyOfInputData.slice(-6)
+        console.log(dateWithoutTimezone, timeZoneStr)
+
+        // Now, Date contstructor not convert time!!! hooray!!
+        const utcDate = new Date(dateWithoutTimezone)
+        console.log("utcDate", utcDate)
+        utcDate.setMinutes(utcDate.getMinutes() + minutesToAdd)
+        console.log("utcDate+30", utcDate)
+        const isoDateString = utcDate.toISOString()
+        console.log("isoStr", isoDateString)
+        // now replace 'Z' with timeZoneStr
+        const localIsoDateString = isoDateString.replace('Z', timeZoneStr)
+        console.log("isoStr+0900", isoDateString)
+        return localIsoDateString;
+    }
+
+
     // date processing logic fits for below google API
     // calendar.createAllDayEvent(title, date, [end, [options])])
     // calendar.createEvent(title, startTime, endTime, [options]);
     // https://developers.google.com/apps-script/reference/calendar/calendar?hl=ko#createAllDayEvent(String,Date,Object)
-    function processDate(datePropObj, startOrEndTypeStr) {
+    function processDate(datePropObj, startOrEndTypeStr, notionDbPage = {}) {
+
+        if(!isEmptyObject(notionDbPage)){
+            const title = notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title[0].plain_text
+            console.log('notion title', title)
+        }
+        console.log("processDate", startOrEndTypeStr)
+        console.log("print date", notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date)
+
 
         // Find out start time has a time
         // For Notion dates, both start and end dates may or may not have time, so
         // All we need to know is whether the start has time or not.
         let startHasValue = UTIL.hasDate(datePropObj, "start")
-        if(!startHasValue) return null
+        if (!startHasValue) return null
 
         let startValue = datePropObj.start
         let bothShouldHaveTime = UTIL.hasTime(startValue)
-
-        let currentValue = null
+        console.log('start hasTime', UTIL.hasTime(startValue))
+        let currentValue = datePropObj[startOrEndTypeStr]
         // both doesn't have a time. It's aAllDayEvent case.
         // in AllDayEvent case, end value is optional. nothing to do.
 
+        // 사용 예시
+        //const countryCode = 'Asia/Seoul'; // 예: 'Asia/Seoul', 'America/New_York'
+        //const inputDate = '2024-07-15T10:00:00'; // 예: '2024-07-15T10:00:00'
+        const minutesToAdd = 30; // 예: 30분 추가
+        //console.log(UTIL.getUTCDifferenceInMilliseconds(countryCode, inputDate, minutesToAdd));
+
         // if not, It's Event. start and end should be existed and also has a time together.
-        if(bothShouldHaveTime) {
+        if (bothShouldHaveTime) {
+
             let endHasValue = UTIL.hasDate(datePropObj, "end")
-            if (!endHasValue) {
-                let default_end = new Date(datePropObj.start);
-                default_end.setMinutes(default_end.getMinutes() + 30);
-                currentValue = default_end.toISOString();
+            if (startOrEndTypeStr === "end"){
+                if(!endHasValue) {
+                    console.log("!endHasValue")
+                    currentValue = UTIL.getLocaleISOTime(startValue, minutesToAdd)
+                    console.log(currentValue)
+                } else {
+                    // currentValue = UTIL.getLocaleISOTime(datePropObj.start)
+                    // console.log("%s, endHasValue", startOrEndTypeStr)
+                    // console.log(datePropObj)
+                    // console.log(currentValue)
+                }
             }
         }
 
@@ -98,7 +152,7 @@ const UTIL = (() => {
     }
 
     function hasTime(dateString) {
-        // console.log("hasTime", dateString)
+        console.log("hasTime", dateString)
         return dateString.search(/([A-Z])/g) !== -1
     }
 
@@ -110,7 +164,7 @@ const UTIL = (() => {
         // For Notion dates, both start and end dates may or may not have time, so
         // All we need to know is whether the start has time or not.
         let startHasValue = UTIL.hasDate(datePropObj, "start")
-        if(!startHasValue) return null
+        if (!startHasValue) return null
 
         let startValue = datePropObj.start
         let bothShouldHaveTime = UTIL.hasTime(startValue)
@@ -362,6 +416,13 @@ const UTIL = (() => {
             let end;
 
             if (event.start.date) {
+                // 조회된 구글 이벤트 내용 조회
+                if(event.id === "pp60lausrn7oprbkp908erqafg"){
+                    console.log("Event %s info",event.id)
+                    console.log(event.summary)
+                    console.log(event.start.date)
+                }
+
                 // All-day event.
                 start = new Date(event.start.date);
                 end = new Date(event.end.date);
@@ -509,18 +570,17 @@ const UTIL = (() => {
             let start_time;
             let end_time;
 
+            if(event.id === "pp60lausrn7oprbkp908erqafg"){
+                console.log("Event %s start end conversion",event.id)
+                console.log(event)
+            }
+
             if (event.start.date) {
                 // All-day event.
-                start_time = new Date(event.start.date);
-                end_time = new Date(event.end.date);
-
-                // Offset timezone
-                start_time.setTime(
-                    start_time.getTime() + start_time.getTimezoneOffset() * 60 * 1000
-                );
-                end_time.setTime(
-                    end_time.getTime() + end_time.getTimezoneOffset() * 60 * 1000
-                );
+                // bypass UTC conversion. it reduced timezone calculation code.
+                const utcTimeTemplate = "T00:00:00.000Z"
+                start_time = new Date(event.start.date + utcTimeTemplate)
+                end_time = new Date(event.end.date + utcTimeTemplate)
 
                 // Offset by 1 day to get end date.
                 end_time.setDate(end_time.getDate() - 1);
@@ -528,6 +588,13 @@ const UTIL = (() => {
                 start_time = start_time.toISOString().split("T")[0];
                 end_time = end_time.toISOString().split("T")[0];
 
+                if(event.id === "pp60lausrn7oprbkp908erqafg"){
+                    console.log("All day - remove timezone")
+                    console.log('start_time',start_time)
+                    console.log('start_time',end_time)
+                }
+
+                // 이런 케이스도 있나??? 햐.. 진짜 겪어봐야 알겠네 진짜..
                 end_time = start_time == end_time ? null : end_time;
             } else {
                 // Events that don't last all day; they have defined start times.
@@ -603,7 +670,8 @@ const UTIL = (() => {
         //@Todo 이거는 타입인데? 다른 곳으로 빼야 하는 거 아니야?
         InvalidEventError,
         convertToNotionProperty,
-        checkNotionProperty
+        checkNotionProperty,
+        getLocaleISOTime
     }
 })()
 

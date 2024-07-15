@@ -120,6 +120,10 @@ function syncableToGcal(result, syncableList, calendarList) {
  function updateDatabaseEntry(event, page_id, existing_tags = [], multi = true) {
    let properties = UTIL.convertToNotionProperty(event, existing_tags);
    let archive = CONFIG.ARCHIVE_NOTION_EVENTS_GCAL_REMOVED && event.status === "cancelled";
+    if(page_id === "da77d46d-bbe9-49ba-89d4-a960c8283c58"){
+        console.log("updateDatabaseEntry")
+        console.log(properties)
+    }
    return API.NOTION.updateNotionPage(properties, page_id, archive, multi);
  }
 

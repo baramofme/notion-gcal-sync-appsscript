@@ -52,10 +52,10 @@ const CONTROLLER = (()=>{
 
     const commonEvents = response_data.results.map(page => {
       const converted = UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
-      if(page.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
-        console.log(UTIL.getBeforeVal(page, "start", RULES))
-        console.log('start',converted.data.start)
-      }
+       // if(page.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+        // console.log(UTIL.getBeforeVal(page, "start", RULES))
+        // console.log('start',converted.data.start)
+       // }
 
       return converted
     })

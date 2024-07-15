@@ -218,7 +218,6 @@ const API = (() => {
             options["url"] = url;
             return options;
         }
-
         return UrlFetchApp.fetch(url, options);
     }
 
@@ -372,6 +371,9 @@ const API = (() => {
             calEvent.setDescription(description);
             calEvent.setTitle(gCalSummary);
             calEvent.setLocation(location);
+
+            console.log("updateGcalEvent")
+            console.log(start, end, allDay)
 
             if (end && allDay) {
                 // all day, multi day

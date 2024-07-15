@@ -72,7 +72,7 @@ let CommonEvent = (function () {
             const ruleKeys = Object.keys(this.rulesObj)
             ruleKeys.forEach(key => {
                 const {extFunc, convFunc} = this.rulesObj[key](utils)
-                obj[key] = convFunc(extFunc(notionDbPage))
+                obj[key] = convFunc(extFunc(notionDbPage),notionDbPage)
             })
 
             // @Todo 이것도 별도의 rules 로 만들면 좋지 않을까?

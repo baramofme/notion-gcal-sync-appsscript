@@ -40,9 +40,9 @@ const RULES = (() => {
             required: true,
             // extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
             extFunc: (notionDbPage) => {
-                if(notionDbPage.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
-                    console.log(UTIL.getBeforeVal(notionDbPage, "start", RULES))
-                }
+                // if(notionDbPage.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+                    // console.log(UTIL.getBeforeVal(notionDbPage, "start", RULES))
+                // }
                 return notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name
             },
             convFunc: (gCalCalName)=> util.writable(CALENDAR_IDS, gCalCalName)
@@ -72,12 +72,12 @@ const RULES = (() => {
         start: (util) => ({
             required: true,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            convFunc: (obj) => util.processDate(obj,"start")
+            convFunc: (obj,notionDbPage) => util.processDate(obj,"start", notionDbPage)
         }),
         end: (util) => ({
             required: false,
             extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date,
-            convFunc: (obj) => util.processDate( obj, "end")
+            convFunc: (obj,notionDbPage) => util.processDate( obj, "end", notionDbPage)
         }),
         // Gcal Info
         allDay: (util) => ({
