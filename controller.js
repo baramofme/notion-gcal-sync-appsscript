@@ -49,10 +49,12 @@ const CONTROLLER = (()=>{
     // Get 100 pages in order of when they were last edited.
 
     const response_data = API.NOTION.getFilteredNotionPages();
+    // console.log('노션 필터 조회', response_data)
 
     const commonEvents = response_data.results.map(page => {
       const converted = UTIL.convertPageToCommonEvent(page, RULES.CONVERT.eventPropertyExtractionRules, CALENDAR_IDS, UTIL)
-       // if(page.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+      const targetPageId = page.id
+       // if(targetPageId === ''){
         // console.log(UTIL.getBeforeVal(page, "start", RULES))
         // console.log('start',converted.data.start)
        // }
@@ -60,17 +62,17 @@ const CONTROLLER = (()=>{
       return converted
     })
 
-    commonEvents.forEach(event => {
-
-      //console.log(event.data)
-   //   const notionItem = response_data.results.find(result => result.id === event.nPageId)
-   //   if(UTIL.getBeforeVal(notionItem, "start", RULES).start === '2024-06-08'){
-   //     console.log(notionItem.properties["이름"].title[0])
-   //   }
-      //console.log('start',event.data)
-    })
+    // commonEvents.forEach(event => {
+    //   console.log("title", event.nTitle)
+    //   console.log("recentup",event.recentlyUpdated)
+    // })
 
     const needUpdateEvents = commonEvents.filter(event => event.recentlyUpdated)
+    // console.log("needUpdateEvents")
+    // console.log(needUpdateEvents)
+    // needUpdateEvents.forEach(event => {
+    //   if(event.recentlyUpdated) console.log(event.nTitle)
+    // })
 
     const splitList = UTIL.splitEventFoUpdate(needUpdateEvents)
 

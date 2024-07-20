@@ -372,8 +372,8 @@ const API = (() => {
             calEvent.setTitle(gCalSummary);
             calEvent.setLocation(location);
 
-            console.log("updateGcalEvent")
-            console.log(start, end, allDay)
+            // console.log("updateGcalEvent")
+            // console.log(start, end, allDay)
 
             if (end && allDay) {
                 // all day, multi day

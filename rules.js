@@ -40,7 +40,7 @@ const RULES = (() => {
             required: true,
             // extFunc: (notionDbPage) => notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name,
             extFunc: (notionDbPage) => {
-                // if(notionDbPage.id === 'da77d46d-bbe9-49ba-89d4-a960c8283c58'){
+                // if(notionDbPage.id === ''){
                     // console.log(UTIL.getBeforeVal(notionDbPage, "start", RULES))
                 // }
                 return notionDbPage.properties[CONFIG.CALENDAR_NAME_PROP_NOTION].select?.name
@@ -97,10 +97,21 @@ const RULES = (() => {
         }),
         recentlyUpdated: (util) => ({
             required: false,
-            extFunc: (notionDbPage) => ({
-                lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start || 0,
-                lastEditedTime: notionDbPage.last_edited_time
-            }),
+            extFunc: (notionDbPage) => {
+                // const recent = new Date(notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start)
+                // < new Date(notionDbPage.last_edited_time)
+                // if(recent){
+                //     console.log(notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title[0].plain_text)
+                //     console.log(notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start)
+                //     console.log(notionDbPage.last_edited_time)
+                //     console.log(new Date(notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start))
+                //     console.log(new Date(notionDbPage.last_edited_time))
+                // }
+                return ({
+                    lastSyncDate: notionDbPage.properties[CONFIG.LAST_SYNC_PROP_NOTION].date?.start || 0,
+                    lastEditedTime: notionDbPage.last_edited_time
+                })
+            },
             convFunc: ({lastSyncDate, lastEditedTime}) => new Date(lastSyncDate) < new Date(lastEditedTime)
         }),
     }

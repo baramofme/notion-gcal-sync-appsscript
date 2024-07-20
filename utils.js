@@ -76,22 +76,22 @@ const UTIL = (() => {
         // longOffsetString.split('GMT')[1] will give us '-05:00'
         const gmtOffset = longOffsetString.split('GMT')[1];
          */
-        console.log('inputDate',inputDate)
+        // console.log('inputDate',inputDate)
         const copyOfInputData = inputDate
         const dateWithoutTimezone = inputDate.slice(0, -6) + "Z"
         const timeZoneStr = copyOfInputData.slice(-6)
-        console.log(dateWithoutTimezone, timeZoneStr)
+        // console.log(dateWithoutTimezone, timeZoneStr)
 
         // Now, Date contstructor not convert time!!! hooray!!
         const utcDate = new Date(dateWithoutTimezone)
-        console.log("utcDate", utcDate)
+        // console.log("utcDate", utcDate)
         utcDate.setMinutes(utcDate.getMinutes() + minutesToAdd)
-        console.log("utcDate+30", utcDate)
+        // console.log("utcDate+30", utcDate)
         const isoDateString = utcDate.toISOString()
-        console.log("isoStr", isoDateString)
+        // console.log("isoStr", isoDateString)
         // now replace 'Z' with timeZoneStr
         const localIsoDateString = isoDateString.replace('Z', timeZoneStr)
-        console.log("isoStr+0900", isoDateString)
+        // console.log("isoStr+0900", isoDateString)
         return localIsoDateString;
     }
 
@@ -100,14 +100,11 @@ const UTIL = (() => {
     // calendar.createAllDayEvent(title, date, [end, [options])])
     // calendar.createEvent(title, startTime, endTime, [options]);
     // https://developers.google.com/apps-script/reference/calendar/calendar?hl=ko#createAllDayEvent(String,Date,Object)
-    function processDate(datePropObj, startOrEndTypeStr, notionDbPage = {}) {
+    function processDate(datePropObj, startOrEndTypeStr, notionDbPage ) {
 
-        if(!isEmptyObject(notionDbPage)){
-            const title = notionDbPage.properties[CONFIG.NAME_PROP_NOTION].title[0].plain_text
-            console.log('notion title', title)
+        if(notionDbPage){
+            // throw new Error(JSON.stringify(notionDbPage) );
         }
-        console.log("processDate", startOrEndTypeStr)
-        console.log("print date", notionDbPage.properties[CONFIG.DATE_PROP_NOTION].date)
 
 
         // Find out start time has a time
@@ -118,7 +115,7 @@ const UTIL = (() => {
 
         let startValue = datePropObj.start
         let bothShouldHaveTime = UTIL.hasTime(startValue)
-        console.log('start hasTime', UTIL.hasTime(startValue))
+        // console.log('start hasTime', UTIL.hasTime(startValue))
         let currentValue = datePropObj[startOrEndTypeStr]
         // both doesn't have a time. It's aAllDayEvent case.
         // in AllDayEvent case, end value is optional. nothing to do.
@@ -135,9 +132,9 @@ const UTIL = (() => {
             let endHasValue = UTIL.hasDate(datePropObj, "end")
             if (startOrEndTypeStr === "end"){
                 if(!endHasValue) {
-                    console.log("!endHasValue")
+                    // console.log("!endHasValue")
                     currentValue = UTIL.getLocaleISOTime(startValue, minutesToAdd)
-                    console.log(currentValue)
+                    // console.log(currentValue)
                 } else {
                     // currentValue = UTIL.getLocaleISOTime(datePropObj.start)
                     // console.log("%s, endHasValue", startOrEndTypeStr)
@@ -152,7 +149,7 @@ const UTIL = (() => {
     }
 
     function hasTime(dateString) {
-        console.log("hasTime", dateString)
+        // console.log("hasTime", dateString)
         return dateString.search(/([A-Z])/g) !== -1
     }
 
@@ -417,11 +414,11 @@ const UTIL = (() => {
 
             if (event.start.date) {
                 // 조회된 구글 이벤트 내용 조회
-                if(event.id === "pp60lausrn7oprbkp908erqafg"){
-                    console.log("Event %s info",event.id)
-                    console.log(event.summary)
-                    console.log(event.start.date)
-                }
+                // if(event.id === ""){
+                //     console.log("Event %s info",event.id)
+                //     console.log(event.summary)
+                //     console.log(event.start.date)
+                // }
 
                 // All-day event.
                 start = new Date(event.start.date);
@@ -570,10 +567,10 @@ const UTIL = (() => {
             let start_time;
             let end_time;
 
-            if(event.id === "pp60lausrn7oprbkp908erqafg"){
-                console.log("Event %s start end conversion",event.id)
-                console.log(event)
-            }
+            // if(event.id === ""){
+            //     console.log("Event %s start end conversion",event.id)
+            //     console.log(event)
+            // }
 
             if (event.start.date) {
                 // All-day event.
@@ -588,11 +585,11 @@ const UTIL = (() => {
                 start_time = start_time.toISOString().split("T")[0];
                 end_time = end_time.toISOString().split("T")[0];
 
-                if(event.id === "pp60lausrn7oprbkp908erqafg"){
-                    console.log("All day - remove timezone")
-                    console.log('start_time',start_time)
-                    console.log('start_time',end_time)
-                }
+                // if(event.id === ""){
+                //     console.log("All day - remove timezone")
+                //     console.log('start_time',start_time)
+                //     console.log('start_time',end_time)
+                // }
 
                 // 이런 케이스도 있나??? 햐.. 진짜 겪어봐야 알겠네 진짜..
                 end_time = start_time == end_time ? null : end_time;
